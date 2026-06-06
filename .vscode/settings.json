@@ -1,0 +1,7 @@
+{
+    "chat.disableAIFeatures": false,
+    "github.copilot.chat.customInstructionsInSystemMessage": true,
+    "github.copilot.chat.scopeSelection": false,
+    "github.copilot.editor.enableCodeActions": true,
+    "github.copilot.chat.reviewAgent.enabled": true
+}
