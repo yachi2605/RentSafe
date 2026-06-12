@@ -25,3 +25,5 @@ yarn-error.log*
 # Local editor/runtime files
 .idea/
 .vercel/
+venv/
+.venv/

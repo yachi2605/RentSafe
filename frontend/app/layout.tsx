@@ -19,6 +19,17 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'RentSafe — Renter-first housing platform',
   description: 'Analyze leases, detect scams, understand rights, and find renter roommates.',
+  manifest: '/manifest.webmanifest',
+  icons: {
+    icon: [{ url: '/favicon-32.png', sizes: '32x32', type: 'image/png' }],
+    apple: '/apple-touch-icon.png',
+  },
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#0F1B2D',
 };
 
 export default function RootLayout({

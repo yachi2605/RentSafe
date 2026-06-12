@@ -6,25 +6,44 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 export default function AcceptTermsPage() {
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClientComponentClient();
 
   async function handleAccept() {
     if (!agreed) return;
     setLoading(true);
+    setError(null);
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase
-      .from('profiles')
-      .update({
+    if (!user) {
+      setError('Your session expired. Please sign in again.');
+      setLoading(false);
+      router.push('/login');
+      return;
+    }
+
+    const { error: upsertError } = await supabase.from('profiles').upsert(
+      {
+        id: user.id,
+        email: user.email ?? null,
         tos_accepted: true,
         tos_accepted_at: new Date().toISOString(),
         tos_version: '1.0',
-      })
-      .eq('id', user.id);
+      },
+      { onConflict: 'id' }
+    );
+
+    if (upsertError) {
+      setError(upsertError.message);
+      setLoading(false);
+      return;
+    }
+
+    router.refresh();
     router.push('/dashboard');
+    setLoading(false);
   }
 
   return (
@@ -121,6 +140,7 @@ export default function AcceptTermsPage() {
         >
           {loading ? 'Saving...' : 'I Agree — Continue to RentSafe'}
         </button>
+        {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
       </div>
     </div>
   );

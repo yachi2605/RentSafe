@@ -1,9 +1,10 @@
 export interface Profile {
   id: string;
   full_name: string;
-  email: string;
+  email?: string;
   avatar_url?: string;
   bio?: string;
+  is_student_verified?: boolean;
 }
 
 export type LeaseType = 'existing' | 'new_cosign' | 'sublet';
@@ -72,6 +73,12 @@ export interface SeekerPost {
   created_at: string;
 }
 
+export interface MatchFactor {
+  factor: string;
+  aligned: boolean;
+  note: string;
+}
+
 export interface Match {
   id: string;
   space_post: SpacePost;
@@ -80,6 +87,7 @@ export interface Match {
   space_poster_seen: boolean;
   seeker_seen: boolean;
   created_at: string;
+  breakdown?: MatchFactor[];
 }
 
 export interface Message {

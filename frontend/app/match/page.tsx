@@ -11,13 +11,18 @@ import { Button } from '@/components/ui/button';
 export default function MatchPage() {
   const [spaces, setSpaces] = useState<SpacePost[]>([]);
   const [seekers, setSeekers] = useState<SeekerPost[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
-      const spaceRes = await listSpacePosts();
-      const seekerRes = await listSeekerPosts();
-      setSpaces(spaceRes.spaces || []);
-      setSeekers(seekerRes.seekers || []);
+      try {
+        const spaceRes = await listSpacePosts();
+        const seekerRes = await listSeekerPosts();
+        setSpaces(spaceRes.spaces || []);
+        setSeekers(seekerRes.seekers || []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load posts');
+      }
     };
     load();
   }, []);
@@ -41,6 +46,8 @@ export default function MatchPage() {
           </Link>
         </div>
       </div>
+
+      {error && <p className="text-sm text-red-400">{error}</p>}
 
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Spaces available</h2>

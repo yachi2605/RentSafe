@@ -71,6 +71,77 @@ def is_city_match(space: dict, seeker: dict) -> bool:
     )
 
 
+def explain_match(space: dict, seeker: dict) -> list[dict]:
+    """Human-readable factor-by-factor breakdown of why two posts match.
+
+    Returns a list of {"factor", "aligned", "note"} dicts, strongest signals first.
+    """
+    factors = []
+
+    share = space.get("your_share", 0)
+    factors.append({
+        "factor": "Budget",
+        "aligned": seeker.get("budget_min", 0) <= share <= seeker.get("budget_max", 0),
+        "note": f"${share}/mo vs budget ${seeker.get('budget_min', 0)}-{seeker.get('budget_max', 0)}",
+    })
+
+    clean_gap = abs(space.get("pref_cleanliness", 3) - seeker.get("cleanliness", 3))
+    factors.append({
+        "factor": "Cleanliness",
+        "aligned": clean_gap <= 1,
+        "note": "similar standards" if clean_gap <= 1 else "different standards",
+    })
+
+    noise_gap = abs(space.get("pref_noise_tolerance", 3) - seeker.get("noise_level", 3))
+    factors.append({
+        "factor": "Noise",
+        "aligned": noise_gap <= 1,
+        "note": "compatible noise levels" if noise_gap <= 1 else "different noise levels",
+    })
+
+    guest_gap = abs(space.get("pref_guests_frequency", 3) - seeker.get("guests_frequency", 3))
+    factors.append({
+        "factor": "Guests",
+        "aligned": guest_gap <= 1,
+        "note": "similar guest habits" if guest_gap <= 1 else "different guest habits",
+    })
+
+    space_sched = space.get("pref_schedule", "flexible")
+    seeker_sched = seeker.get("schedule", "flexible")
+    sched_ok = "flexible" in (space_sched, seeker_sched) or space_sched == seeker_sched
+    factors.append({
+        "factor": "Schedule",
+        "aligned": sched_ok,
+        "note": f"{space_sched.replace('_', ' ')} + {seeker_sched.replace('_', ' ')}",
+    })
+
+    smoking_ok = space.get("pref_smoking_ok", False) or not seeker.get("smoking", False)
+    factors.append({
+        "factor": "Smoking",
+        "aligned": smoking_ok,
+        "note": "compatible" if smoking_ok else "smoker, non-smoking home",
+    })
+
+    needs = {
+        "furnished": ("needs_furnished", "is_furnished"),
+        "parking": ("needs_parking", "has_parking"),
+        "laundry": ("needs_laundry", "has_laundry"),
+        "pets": ("needs_pets_allowed", "pets_allowed"),
+        "AC": ("needs_ac", "has_ac"),
+        "utilities incl.": ("needs_utilities_included", "utilities_included"),
+    }
+    missing = [label for label, (need, has) in needs.items() if seeker.get(need) and not space.get(has)]
+    wanted = [label for label, (need, _) in needs.items() if seeker.get(need)]
+    if wanted:
+        factors.append({
+            "factor": "Must-haves",
+            "aligned": not missing,
+            "note": "all needs met" if not missing else f"missing: {', '.join(missing)}",
+        })
+
+    return sorted(factors, key=lambda f: not f["aligned"])
+
+
 MATCH_THRESHOLD = 0.75
 
 

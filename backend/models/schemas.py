@@ -95,9 +95,11 @@ class MatchRecord(BaseModel):
 
 
 class MessageCreate(BaseModel):
-    match_id: str
-    sender_id: str
     content: str
+    # match_id comes from the URL and sender_id from the verified auth token;
+    # accepted here only for backwards compatibility and ignored by the API.
+    match_id: Optional[str] = None
+    sender_id: Optional[str] = None
 
 
 class MessageResponse(BaseModel):

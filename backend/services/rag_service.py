@@ -1,38 +1,73 @@
+"""
+Tenant Rights Service — answered by the configured OpenAI model directly,
+with a structured prompt that forces citation and refusal on unknown topics.
+"""
 import os
-from functools import lru_cache
 
-import faiss
-from llama_index.core import Settings, SimpleDirectoryReader, StorageContext, VectorStoreIndex
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.vector_stores.faiss import FaissVectorStore
+from openai import OpenAI
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "tenant_laws")
+DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.4-mini")
 
 
-@lru_cache(maxsize=1)
-def _load_index() -> VectorStoreIndex | None:
-    if not os.path.isdir(DATA_DIR):
-        return None
+def _get_client() -> OpenAI:
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("Missing OPENAI_API_KEY")
+    return OpenAI(api_key=api_key)
 
-    documents = SimpleDirectoryReader(DATA_DIR).load_data()
-    if not documents:
-        return None
+# All 50 US states for validation
+US_STATES = [
+    "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado",
+    "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho",
+    "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana",
+    "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota",
+    "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada",
+    "New Hampshire", "New Jersey", "New Mexico", "New York",
+    "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon",
+    "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota",
+    "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington",
+    "West Virginia", "Wisconsin", "Wyoming"
+]
 
-    embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2")
-    Settings.embed_model = embed_model
+def ask_tenant_rights(question: str, state: str) -> dict:
+    """
+    Answer tenant rights questions using Claude with hallucination guard.
+    Returns answer text, state, and a disclaimer.
+    """
 
-    faiss_index = faiss.IndexFlatL2(embed_model.embed_dim)
-    vector_store = FaissVectorStore(faiss_index=faiss_index)
-    storage_context = StorageContext.from_defaults(vector_store=vector_store)
+    prompt = f"""
+You are a US tenant rights expert specializing in residential rental law.
+The user is a renter in {state}.
 
-    return VectorStoreIndex.from_documents(documents, storage_context=storage_context)
+Answer their question based on {state} tenant law. Follow these rules strictly:
 
+1. Be specific to {state} law — mention the relevant statute type when possible
+   (e.g. "Under Illinois law", "The {state} Landlord-Tenant Act states...")
+2. Use plain English — no legal jargon unless you explain it immediately after
+3. Be practical — tell the renter what they can actually DO
+4. If the answer varies by city within {state}, mention that
+5. HALLUCINATION GUARD: If you are not confident about the specific law in {state},
+   respond with exactly:
+   "I cannot provide reliable legal information on this specific issue for {state}.
+   Please contact a licensed tenant rights attorney or your local tenant advocacy
+   organization for accurate guidance."
+6. Never guess or infer specific statutes. Only answer what you know with confidence.
+7. Keep your answer to 3-5 sentences maximum. Be concise and actionable.
 
-def get_context(question: str, state: str) -> str:
-    index = _load_index()
-    if not index:
-        return ""
+Renter's question: {question}
+"""
 
-    query_engine = index.as_query_engine(similarity_top_k=5)
-    response = query_engine.query(f"{state} tenant law guidance: {question}")
-    return str(response)
+    client = _get_client()
+    completion = client.chat.completions.create(
+        model=DEFAULT_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    answer = completion.choices[0].message.content or ""
+
+    return {
+        "answer": answer,
+        "state": state,
+        "disclaimer": "This is AI-generated information, not legal advice. Always verify with a licensed attorney or your local tenant advocacy organization before taking legal action.",
+        "powered_by": "RentSafe AI",
+    }

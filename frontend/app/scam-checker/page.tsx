@@ -11,14 +11,18 @@ export default function ScamCheckerPage() {
   const [listingText, setListingText] = useState('');
   const [result, setResult] = useState<ScamCheckResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleCheck = async () => {
     if (!listingText.trim()) return;
     setLoading(true);
     setResult(null);
+    setError(null);
     try {
       const response = await checkScam(listingText);
       setResult(response);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Scam check failed');
     } finally {
       setLoading(false);
     }
@@ -38,6 +42,7 @@ export default function ScamCheckerPage() {
       <Button onClick={handleCheck} disabled={loading}>
         {loading ? 'Checking...' : 'Check listing'}
       </Button>
+      {error && <p className="text-sm text-red-400">{error}</p>}
       {result && <ScamScoreCard result={result} />}
     </div>
   );
