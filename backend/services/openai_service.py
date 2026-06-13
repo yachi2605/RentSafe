@@ -107,7 +107,43 @@ def check_scam(listing_text: str) -> dict:
     )
 
 
+_MAX_QA_CHARS = 60_000  # safely within gpt-4o-mini's 128k-token context
+
+
+def _extract_relevant_sections(lease_text: str, question: str, max_chars: int) -> str:
+    """Return the most question-relevant paragraphs, up to max_chars.
+
+    Strategy:
+    1. Split into paragraphs.
+    2. Score each paragraph by how many question words it contains.
+    3. Return top-scored paragraphs first, then fill remaining budget with
+       the rest in document order so surrounding context is preserved.
+    """
+    if len(lease_text) <= max_chars:
+        return lease_text
+
+    question_words = set(question.lower().split())
+    paragraphs = [p.strip() for p in lease_text.split("\n\n") if p.strip()]
+
+    scored = sorted(
+        paragraphs,
+        key=lambda p: sum(1 for w in question_words if w in p.lower()),
+        reverse=True,
+    )
+
+    selected: list[str] = []
+    used = 0
+    for para in scored:
+        if used + len(para) > max_chars:
+            break
+        selected.append(para)
+        used += len(para) + 2  # account for \n\n separator
+
+    return "\n\n".join(selected)
+
+
 def answer_lease_question(lease_text: str, question: str) -> str:
+    context = _extract_relevant_sections(lease_text, question, _MAX_QA_CHARS)
     client = _get_client()
     completion = client.chat.completions.create(
         model=DEFAULT_MODEL,
@@ -124,7 +160,7 @@ def answer_lease_question(lease_text: str, question: str) -> str:
             {
                 "role": "user",
                 "content": (
-                    f"Lease document:\n\"\"\"\n{lease_text[:12000]}\n\"\"\"\n\n"
+                    f"Lease document (relevant sections):\n\"\"\"\n{context}\n\"\"\"\n\n"
                     f"Question: {question}"
                 ),
             },

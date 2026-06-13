@@ -27,14 +27,28 @@ async def analyze_lease_endpoint(
 
     extracted = extract_text_from_pdf(contents)
 
+    # Guard against image-only PDFs that yield no text.
+    if not extracted["full_text"].strip():
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "No text could be extracted from this PDF. "
+                "It may be a scanned image — please use a text-based PDF or copy-paste the lease text."
+            ),
+        )
+
+    # For multi-chunk leases, analyze the first (most clause-dense) chunk only.
+    # full_text can be unbounded for very large docs; chunks are capped at 80k chars each.
+    analyze_text = extracted["chunks"][0]
+
     # Re-analyzing the same lease text is free (cache hit, no quota use).
-    key = cache_key("lease", extracted["full_text"])
+    key = cache_key("lease", analyze_text)
     cached = get_cached(key)
     if cached is not None:
         return cached
 
     enforce_quota(auth_user_id, "lease")
-    result = analyze_lease(extracted["full_text"])
+    result = analyze_lease(analyze_text)
     set_cached(key, "lease", result)
 
     if user_id:
@@ -79,6 +93,13 @@ async def ask_lease_question_endpoint(
     auth_user_id = require_user(request)
 
     extracted = extract_text_from_pdf(contents)
+
+    if not extracted["full_text"].strip():
+        raise HTTPException(
+            status_code=422,
+            detail="No text could be extracted from this PDF. It may be a scanned image.",
+        )
+
     lease_text = extracted["full_text"]
 
     # Cache per (lease, question) pair — same question on same lease is free.
