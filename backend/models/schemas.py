@@ -10,6 +10,11 @@ class LeaseAnalysisResponse(BaseModel):
     tenant_friendly_score: int
 
 
+class LeaseAskResponse(BaseModel):
+    answer: str
+    disclaimer: str = "This is AI-generated information based on your lease document, not legal advice."
+
+
 class ScamCheckRequest(BaseModel):
     listing_text: str
     user_id: Optional[str] = None

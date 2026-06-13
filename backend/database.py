@@ -5,8 +5,10 @@ from typing import Any
 import requests
 
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
+# .strip() guards against stray whitespace/newlines from copy-pasted env values,
+# which would otherwise make every Supabase request fail with InvalidHeader.
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "").strip()
 
 
 @dataclass

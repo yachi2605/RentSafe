@@ -2,8 +2,8 @@ from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from uuid import uuid4
 
 from database import get_supabase
-from models.schemas import LeaseAnalysisResponse
-from services.openai_service import analyze_lease
+from models.schemas import LeaseAnalysisResponse, LeaseAskResponse
+from services.openai_service import analyze_lease, answer_lease_question
 from services.pdf_service import extract_text_from_pdf
 from services.usage_service import cache_key, enforce_quota, get_cached, require_user, set_cached
 
@@ -59,3 +59,39 @@ async def analyze_lease_endpoint(
             pass
 
     return result
+
+
+@router.post("/ask", response_model=LeaseAskResponse)
+async def ask_lease_question_endpoint(
+    request: Request,
+    file: UploadFile = File(...),
+    question: str = Form(...),
+):
+    """Answer a question about a specific lease document."""
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+    contents = await file.read()
+    if not contents:
+        raise HTTPException(status_code=400, detail="Empty PDF file")
+    if not question.strip():
+        raise HTTPException(status_code=400, detail="Question cannot be empty.")
+
+    auth_user_id = require_user(request)
+
+    extracted = extract_text_from_pdf(contents)
+    lease_text = extracted["full_text"]
+
+    # Cache per (lease, question) pair — same question on same lease is free.
+    key = cache_key("lease_qa", lease_text, question)
+    cached = get_cached(key)
+    if cached is not None:
+        return cached
+
+    enforce_quota(auth_user_id, "lease_qa")
+    answer = answer_lease_question(lease_text, question)
+    response = {
+        "answer": answer,
+        "disclaimer": "This is AI-generated information based on your lease document, not legal advice.",
+    }
+    set_cached(key, "lease_qa", response)
+    return response

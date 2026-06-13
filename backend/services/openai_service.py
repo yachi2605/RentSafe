@@ -5,7 +5,7 @@ from openai import OpenAI
 from pydantic import BaseModel
 
 
-DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.4-mini")
+DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 
 class LeaseRedFlag(BaseModel):
@@ -41,7 +41,7 @@ class ScamCheckResult(BaseModel):
 
 
 def _get_client() -> OpenAI:
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = (os.getenv("OPENAI_API_KEY") or "").strip()
     if not api_key:
         raise RuntimeError("Missing OPENAI_API_KEY")
     return OpenAI(api_key=api_key)
@@ -105,6 +105,32 @@ def check_scam(listing_text: str) -> dict:
         ),
         response_format=ScamCheckResult,
     )
+
+
+def answer_lease_question(lease_text: str, question: str) -> str:
+    client = _get_client()
+    completion = client.chat.completions.create(
+        model=DEFAULT_MODEL,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a lease document assistant. The user has uploaded their lease agreement. "
+                    "Answer questions ONLY based on the lease text provided. "
+                    "If the answer is not found in the lease, say so clearly — do not guess. "
+                    "Quote the relevant clause when helpful. Be concise and practical."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Lease document:\n\"\"\"\n{lease_text[:12000]}\n\"\"\"\n\n"
+                    f"Question: {question}"
+                ),
+            },
+        ],
+    )
+    return completion.choices[0].message.content or ""
 
 
 def answer_tenant_rights(question: str, state: str, context: str) -> str:

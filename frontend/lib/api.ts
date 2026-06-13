@@ -41,6 +41,19 @@ export async function analyzeLease(file: File) {
   return res.json();
 }
 
+export async function askLeaseQuestion(file: File, question: string) {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('question', question);
+  const res = await fetch(`${BACKEND_URL}/lease/ask`, {
+    method: 'POST',
+    body: form,
+    headers: await authHeaders(''),
+  });
+  await ensureOk(res, 'Failed to get answer');
+  return res.json() as Promise<{ answer: string; disclaimer: string }>;
+}
+
 export async function checkScam(listingText: string) {
   const res = await fetch(`${BACKEND_URL}/scam/check`, {
     method: 'POST',

@@ -16,6 +16,7 @@ from database import SUPABASE_URL, SUPABASE_SERVICE_KEY, get_supabase
 # Daily per-user limits (overridable via env without code changes).
 DAILY_LIMITS = {
     "lease": int(os.getenv("QUOTA_LEASE_PER_DAY", "3")),
+    "lease_qa": int(os.getenv("QUOTA_LEASE_QA_PER_DAY", "10")),
     "scam": int(os.getenv("QUOTA_SCAM_PER_DAY", "5")),
     "rights": int(os.getenv("QUOTA_RIGHTS_PER_DAY", "10")),
 }
