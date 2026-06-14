@@ -116,13 +116,14 @@ def _extract_relevant_sections(lease_text: str, question: str, max_chars: int) -
     Strategy:
     1. Split into paragraphs.
     2. Score each paragraph by how many question words it contains.
-    3. Return top-scored paragraphs first, then fill remaining budget with
-       the rest in document order so surrounding context is preserved.
+    3. Pack top-scored paragraphs until budget is full (skip oversized ones,
+       don't break — there may be smaller high-value paragraphs further down).
+    4. If nothing fits, fall back to the first max_chars chars of the raw text.
     """
     if len(lease_text) <= max_chars:
         return lease_text
 
-    question_words = set(question.lower().split())
+    question_words = set(w for w in question.lower().split() if len(w) > 2)
     paragraphs = [p.strip() for p in lease_text.split("\n\n") if p.strip()]
 
     scored = sorted(
@@ -134,10 +135,14 @@ def _extract_relevant_sections(lease_text: str, question: str, max_chars: int) -
     selected: list[str] = []
     used = 0
     for para in scored:
-        if used + len(para) > max_chars:
-            break
+        if used + len(para) + 2 > max_chars:
+            continue  # skip oversized paragraphs, keep looking for smaller ones
         selected.append(para)
-        used += len(para) + 2  # account for \n\n separator
+        used += len(para) + 2
+
+    if not selected:
+        # Fallback: just send the beginning of the document
+        return lease_text[:max_chars]
 
     return "\n\n".join(selected)
 
