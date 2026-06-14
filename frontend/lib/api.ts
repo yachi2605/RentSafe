@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
@@ -15,6 +15,7 @@ async function ensureOk(res: Response, fallback: string): Promise<Response> {
 }
 
 async function authHeaders(contentType = 'application/json') {
+  const supabase = createClientComponentClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();
