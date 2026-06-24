@@ -8,6 +8,37 @@ class LeaseAnalysisResponse(BaseModel):
     red_flags: list[dict]
     negotiation_tips: list[str]
     tenant_friendly_score: int
+    extracted_text: str = ""  # returned so frontend never re-uploads for Q&A
+
+
+class ProactiveQAItem(BaseModel):
+    question: str
+    answer: str
+    clause_ref: str = ""  # e.g. "Section 4.2" if found
+
+
+class ProactiveQARequest(BaseModel):
+    lease_text: str
+
+
+class ProactiveQAResponse(BaseModel):
+    items: list[ProactiveQAItem]
+
+
+class LeaseAskTextRequest(BaseModel):
+    lease_text: str
+    question: str
+
+
+class NegotiateClauseRequest(BaseModel):
+    clause: str          # clause name, e.g. "Early Termination"
+    clause_text: str     # quoted text from lease
+    explanation: str     # why it's a red flag
+
+
+class NegotiateClauseResponse(BaseModel):
+    subject: str
+    body: str
 
 
 class LeaseAskResponse(BaseModel):

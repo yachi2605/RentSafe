@@ -98,16 +98,31 @@ export interface Message {
   created_at: string;
 }
 
+export interface LeaseRedFlag {
+  clause: string;
+  text: string;
+  risk_level: 'high' | 'medium' | 'low';
+  explanation: string;
+}
+
 export interface LeaseAnalysisResult {
   summary: string;
-  red_flags: {
-    clause: string;
-    text: string;
-    risk_level: 'high' | 'medium' | 'low';
-    explanation: string;
-  }[];
+  red_flags: LeaseRedFlag[];
   negotiation_tips: string[];
   tenant_friendly_score: number;
+  extracted_text?: string;
+}
+
+export interface ProactiveQAItem {
+  question: string;
+  answer: string;
+  clause_ref?: string;
+}
+
+export interface MoveOutItem {
+  task: string;
+  reason: string;
+  timing: string;
 }
 
 export interface ScamCheckResult {

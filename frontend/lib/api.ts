@@ -42,6 +42,46 @@ export async function analyzeLease(file: File) {
   return res.json();
 }
 
+export async function getProactiveQA(leaseText: string) {
+  const res = await fetch(`${BACKEND_URL}/lease/proactive-qa`, {
+    method: 'POST',
+    headers: await authHeaders(),
+    body: JSON.stringify({ lease_text: leaseText }),
+  });
+  await ensureOk(res, 'Failed to generate Q&A');
+  return res.json();
+}
+
+export async function askLeaseQuestionText(leaseText: string, question: string) {
+  const res = await fetch(`${BACKEND_URL}/lease/ask-text`, {
+    method: 'POST',
+    headers: await authHeaders(),
+    body: JSON.stringify({ lease_text: leaseText, question }),
+  });
+  await ensureOk(res, 'Failed to get answer');
+  return res.json() as Promise<{ answer: string; disclaimer: string }>;
+}
+
+export async function negotiateClause(clause: string, clauseText: string, explanation: string) {
+  const res = await fetch(`${BACKEND_URL}/lease/negotiate-clause`, {
+    method: 'POST',
+    headers: await authHeaders(),
+    body: JSON.stringify({ clause, clause_text: clauseText, explanation }),
+  });
+  await ensureOk(res, 'Failed to generate email');
+  return res.json() as Promise<{ subject: string; body: string }>;
+}
+
+export async function getMoveOutChecklist(leaseText: string) {
+  const res = await fetch(`${BACKEND_URL}/lease/moveout-checklist`, {
+    method: 'POST',
+    headers: await authHeaders(),
+    body: JSON.stringify({ lease_text: leaseText }),
+  });
+  await ensureOk(res, 'Failed to generate checklist');
+  return res.json();
+}
+
 export async function askLeaseQuestion(file: File, question: string) {
   const form = new FormData();
   form.append('file', file);

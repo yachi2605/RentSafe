@@ -174,6 +174,92 @@ def answer_lease_question(lease_text: str, question: str) -> str:
     return completion.choices[0].message.content or ""
 
 
+class _ProactiveQAItem(BaseModel):
+    question: str
+    answer: str
+    clause_ref: str = ""
+
+
+class _ProactiveQAList(BaseModel):
+    items: list[_ProactiveQAItem]
+
+
+def generate_proactive_qa(lease_text: str) -> list[dict]:
+    """Auto-generate the 5 most important Q&As for this specific lease."""
+    context = _extract_relevant_sections(lease_text, "rent deposit termination notice entry late fee", _MAX_QA_CHARS)
+    return _parse_structured_response(
+        system_prompt=(
+            "You are a tenant rights expert reviewing a lease on behalf of a renter. "
+            "Identify the 5 most important things the renter should know about THIS specific lease. "
+            "Each item should be a question a renter would actually ask, answered concisely from the lease text. "
+            "Include the clause reference (e.g. 'Section 4') when you can find it."
+        ),
+        user_prompt=(
+            "Lease text:\n\"\"\"\n" + context + "\n\"\"\"\n\n"
+            "Generate exactly 5 Q&A pairs. Each question should be something a real renter would ask "
+            "(e.g. 'How much is the late fee?', 'Can my landlord enter without notice?'). "
+            "Answer ONLY from the lease text — if something isn't mentioned, say so."
+        ),
+        response_format=_ProactiveQAList,
+    )["items"]
+
+
+class _NegotiationEmail(BaseModel):
+    subject: str
+    body: str
+
+
+def generate_negotiation_email(clause: str, clause_text: str, explanation: str) -> dict:
+    """Draft a professional email from tenant to landlord requesting clause modification."""
+    return _parse_structured_response(
+        system_prompt=(
+            "You are a tenant advocate helping a renter negotiate their lease professionally. "
+            "Write a concise, polite, and firm negotiation email. Use [Your Name] and [Landlord Name] as placeholders. "
+            "Keep it under 200 words. Reference the specific clause. Suggest a reasonable alternative."
+        ),
+        user_prompt=(
+            f"Clause: {clause}\n"
+            f"Current language: {clause_text}\n"
+            f"Problem: {explanation}\n\n"
+            "Write a professional email the tenant can send to request modification of this clause."
+        ),
+        response_format=_NegotiationEmail,
+    )
+
+
+class _MoveOutItem(BaseModel):
+    task: str
+    reason: str
+    timing: str  # e.g. "Before move-in", "Day of move-out", "Within 7 days"
+
+
+class _MoveOutChecklist(BaseModel):
+    items: list[_MoveOutItem]
+
+
+def generate_moveout_checklist(lease_text: str) -> list[dict]:
+    """Generate a lease-specific move-out protection checklist."""
+    context = _extract_relevant_sections(
+        lease_text,
+        "deposit move out damage cleaning notice repair inspection",
+        _MAX_QA_CHARS,
+    )
+    return _parse_structured_response(
+        system_prompt=(
+            "You are a tenant advocate. Generate a practical move-out checklist that protects "
+            "the tenant's security deposit based on THIS specific lease. "
+            "Tasks should be concrete and actionable. Be specific to what the lease actually requires."
+        ),
+        user_prompt=(
+            "Lease text:\n\"\"\"\n" + context + "\n\"\"\"\n\n"
+            "Generate 8-10 checklist items covering: pre-move-in documentation, during tenancy, "
+            "and move-out tasks. For each item include: what to do, why it matters for deposit protection, "
+            "and when to do it."
+        ),
+        response_format=_MoveOutChecklist,
+    )["items"]
+
+
 def answer_tenant_rights(question: str, state: str, context: str) -> str:
     client = _get_client()
     response = client.responses.create(
