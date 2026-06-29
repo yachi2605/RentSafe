@@ -1,11 +1,11 @@
-"""Seed demo users and posts so RentSafe has data to demo.
+"""Seed demo users and posts so RentPilot has data to demo.
 
 Usage (backend running on :8000, backend/.env configured):
 
     cd backend
     python scripts/seed_demo.py
 
-Creates 4 confirmed demo accounts (password: RentSafeDemo1!) and posts
+Creates 4 confirmed demo accounts (password: RentPilotDemo1!) and posts
 spaces/seekers through the live API so the matching engine runs for real.
 Safe to re-run: existing demo users are reused, posts are re-created.
 """
@@ -21,7 +21,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 SUPABASE_URL = os.environ["SUPABASE_URL"].rstrip("/")
 SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
-PASSWORD = "RentSafeDemo1!"
+PASSWORD = "RentPilotDemo1!"
 
 ADMIN_HEADERS = {
     "apikey": SERVICE_KEY,
@@ -30,10 +30,58 @@ ADMIN_HEADERS = {
 }
 
 DEMO_USERS = [
-    {"email": "demo.poster1@rentsafe.app", "full_name": "Priya Sharma"},
-    {"email": "demo.poster2@rentsafe.app", "full_name": "Marcus Lee"},
-    {"email": "demo.seeker1@rentsafe.app", "full_name": "Ana Torres"},
-    {"email": "demo.seeker2@rentsafe.app", "full_name": "Dev Patel"},
+    {
+        "email": "demo.poster1@rentpilot.app",
+        "full_name": "Priya Sharma",
+        "school": "Illinois Institute of Technology",
+        "campus": "Mies Campus",
+        "preferred_city": "Chicago",
+        "preferred_state": "Illinois",
+        "budget_goal_max": 1200,
+        "preferred_move_in_date": "2026-08-01",
+        "prefers_laundry": True,
+        "prefers_ac": True,
+    },
+    {
+        "email": "demo.poster2@rentpilot.app",
+        "full_name": "Marcus Lee",
+        "school": "University of Illinois Chicago",
+        "campus": "West Campus",
+        "preferred_city": "Chicago",
+        "preferred_state": "Illinois",
+        "budget_goal_max": 1000,
+        "preferred_move_in_date": "2026-07-15",
+        "prefers_parking": True,
+        "prefers_pets": True,
+    },
+    {
+        "email": "demo.seeker1@rentpilot.app",
+        "full_name": "Ana Torres",
+        "school": "Illinois Institute of Technology",
+        "campus": "Mies Campus",
+        "preferred_city": "Chicago",
+        "preferred_state": "Illinois",
+        "budget_goal_min": 800,
+        "budget_goal_max": 1200,
+        "preferred_move_in_date": "2026-08-01",
+        "prefers_furnished": True,
+        "prefers_laundry": True,
+        "prefers_ac": True,
+    },
+    {
+        "email": "demo.seeker2@rentpilot.app",
+        "full_name": "Dev Patel",
+        "school": "University of Illinois Chicago",
+        "campus": "East Campus",
+        "preferred_city": "Chicago",
+        "preferred_state": "Illinois",
+        "budget_goal_min": 700,
+        "budget_goal_max": 1000,
+        "preferred_move_in_date": "2026-07-15",
+        "prefers_parking": True,
+        "prefers_pets": True,
+        "prefers_ac": True,
+    },
 ]
 
 
@@ -67,17 +115,50 @@ def get_or_create_user(email: str, full_name: str) -> str:
     raise RuntimeError(f"Could not create or find user {email}: {resp.text}")
 
 
-def ensure_profile(user_id: str, email: str, full_name: str) -> None:
+def ensure_profile(user_id: str, user: dict) -> None:
     requests.post(
         f"{SUPABASE_URL}/rest/v1/profiles",
         headers={**ADMIN_HEADERS, "Prefer": "resolution=merge-duplicates"},
-        json={"id": user_id, "email": email, "full_name": full_name, "tos_accepted": True},
+        json={
+            "id": user_id,
+            "email": user["email"],
+            "full_name": user["full_name"],
+            "school": user.get("school"),
+            "campus": user.get("campus"),
+            "preferred_city": user.get("preferred_city"),
+            "preferred_state": user.get("preferred_state"),
+            "budget_goal_min": user.get("budget_goal_min"),
+            "budget_goal_max": user.get("budget_goal_max"),
+            "preferred_move_in_date": user.get("preferred_move_in_date"),
+            "prefers_furnished": user.get("prefers_furnished", False),
+            "prefers_parking": user.get("prefers_parking", False),
+            "prefers_laundry": user.get("prefers_laundry", False),
+            "prefers_pets": user.get("prefers_pets", False),
+            "prefers_ac": user.get("prefers_ac", False),
+            "tos_accepted": True,
+        },
         timeout=30,
     ).raise_for_status()
 
 
-def post(path: str, payload: dict) -> dict:
-    resp = requests.post(f"{BACKEND_URL}{path}", json=payload, timeout=120)
+def login_user(email: str) -> str:
+    resp = requests.post(
+        f"{SUPABASE_URL}/auth/v1/token?grant_type=password",
+        headers={"apikey": SERVICE_KEY, "Content-Type": "application/json"},
+        json={"email": email, "password": PASSWORD},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    return resp.json()["access_token"]
+
+
+def post(path: str, payload: dict, token: str) -> dict:
+    resp = requests.post(
+        f"{BACKEND_URL}{path}",
+        json=payload,
+        headers={"Authorization": f"Bearer {token}"},
+        timeout=120,
+    )
     if not resp.ok:
         raise RuntimeError(f"POST {path} failed ({resp.status_code}): {resp.text}")
     return resp.json()
@@ -86,16 +167,18 @@ def post(path: str, payload: dict) -> dict:
 def main() -> None:
     print("Creating demo users...")
     ids = {}
+    tokens = {}
     for user in DEMO_USERS:
         uid = get_or_create_user(user["email"], user["full_name"])
-        ensure_profile(uid, user["email"], user["full_name"])
+        ensure_profile(uid, user)
+        tokens[user["email"]] = login_user(user["email"])
         ids[user["email"]] = uid
         print(f"  {user['full_name']:<14} {user['email']:<28} {uid}")
 
     print("\nPosting spaces (via API so matching runs)...")
     spaces = [
         {
-            "poster_id": ids["demo.poster1@rentsafe.app"],
+            "poster_id": ids["demo.poster1@rentpilot.app"],
             "city": "Chicago", "state": "Illinois", "zip": "60616",
             "apartment_type": "2bhk", "total_rent": 2200, "your_share": 1100,
             "rooms_available": 1, "lease_type": "existing", "lease_duration": "long_term",
@@ -107,7 +190,7 @@ def main() -> None:
             "description": "Bright 2BHK near IIT campus, 5 min walk to the Green Line. Looking for a tidy, quiet roommate.",
         },
         {
-            "poster_id": ids["demo.poster2@rentsafe.app"],
+            "poster_id": ids["demo.poster2@rentpilot.app"],
             "city": "Chicago", "state": "Illinois", "zip": "60607",
             "apartment_type": "3bhk", "total_rent": 3000, "your_share": 950,
             "rooms_available": 2, "lease_type": "new_cosign", "lease_duration": "flexible",
@@ -120,13 +203,14 @@ def main() -> None:
         },
     ]
     for space in spaces:
-        result = post("/match/spaces", space)
+        token = tokens["demo.poster1@rentpilot.app"] if space["poster_id"] == ids["demo.poster1@rentpilot.app"] else tokens["demo.poster2@rentpilot.app"]
+        result = post("/match/spaces", space, token)
         print(f"  space in {space['city']} (${space['your_share']}/mo) -> {len(result['matches'])} match(es)")
 
     print("\nPosting seekers (via API so matching runs)...")
     seekers = [
         {
-            "seeker_id": ids["demo.seeker1@rentsafe.app"],
+            "seeker_id": ids["demo.seeker1@rentpilot.app"],
             "city": "Chicago", "state": "Illinois",
             "budget_min": 800, "budget_max": 1200, "move_in_date": "2026-08-01",
             "lease_duration": "long_term",
@@ -137,7 +221,7 @@ def main() -> None:
             "bio": "Grad student at Illinois Tech. Early riser, keep common areas spotless, looking for a calm home near campus.",
         },
         {
-            "seeker_id": ids["demo.seeker2@rentsafe.app"],
+            "seeker_id": ids["demo.seeker2@rentpilot.app"],
             "city": "Chicago", "state": "Illinois",
             "budget_min": 700, "budget_max": 1000, "move_in_date": "2026-07-15",
             "lease_duration": "flexible",
@@ -149,10 +233,11 @@ def main() -> None:
         },
     ]
     for seeker in seekers:
-        result = post("/match/seekers", seeker)
+        token = tokens["demo.seeker1@rentpilot.app"] if seeker["seeker_id"] == ids["demo.seeker1@rentpilot.app"] else tokens["demo.seeker2@rentpilot.app"]
+        result = post("/match/seekers", seeker, token)
         print(f"  seeker budget ${seeker['budget_min']}-{seeker['budget_max']} -> {len(result['matches'])} match(es)")
 
-    print("\nDone. Demo accounts (password: RentSafeDemo1!):")
+    print("\nDone. Demo accounts (password: RentPilotDemo1!):")
     for user in DEMO_USERS:
         print(f"  {user['email']}")
 

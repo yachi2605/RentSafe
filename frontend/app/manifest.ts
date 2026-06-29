@@ -2,8 +2,8 @@ import { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'RentSafe — Renter-first housing platform',
-    short_name: 'RentSafe',
+    name: 'RentPilot — Renter-first housing platform',
+    short_name: 'RentPilot',
     description:
       'Analyze leases, detect rental scams, know your tenant rights, and find a compatible roommate.',
     start_url: '/',

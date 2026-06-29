@@ -1,4 +1,13 @@
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import {
+  MatchBrowseFilters,
+  Message,
+  ReportTargetType,
+  RightsAnswer,
+  RightsCoverage,
+  SavedLeaseAnalysis,
+  SavedScamCheck,
+} from '@/types';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
@@ -95,6 +104,24 @@ export async function askLeaseQuestion(file: File, question: string) {
   return res.json() as Promise<{ answer: string; disclaimer: string }>;
 }
 
+export async function getLeaseHistory(limit?: number) {
+  const params = new URLSearchParams();
+  if (limit) params.set('limit', String(limit));
+  const res = await fetch(`${BACKEND_URL}/lease/history?${params}`, {
+    headers: await authHeaders(''),
+  });
+  await ensureOk(res, 'Failed to load lease history');
+  return res.json() as Promise<{ items: SavedLeaseAnalysis[] }>;
+}
+
+export async function getLeaseHistoryDetail(id: string) {
+  const res = await fetch(`${BACKEND_URL}/lease/history/${id}`, {
+    headers: await authHeaders(''),
+  });
+  await ensureOk(res, 'Failed to load lease analysis');
+  return res.json() as Promise<SavedLeaseAnalysis>;
+}
+
 export async function checkScam(listingText: string) {
   const res = await fetch(`${BACKEND_URL}/scam/check`, {
     method: 'POST',
@@ -105,6 +132,24 @@ export async function checkScam(listingText: string) {
   return res.json();
 }
 
+export async function getScamHistory(limit?: number) {
+  const params = new URLSearchParams();
+  if (limit) params.set('limit', String(limit));
+  const res = await fetch(`${BACKEND_URL}/scam/history?${params}`, {
+    headers: await authHeaders(''),
+  });
+  await ensureOk(res, 'Failed to load scam history');
+  return res.json() as Promise<{ items: SavedScamCheck[] }>;
+}
+
+export async function getScamHistoryDetail(id: string) {
+  const res = await fetch(`${BACKEND_URL}/scam/history/${id}`, {
+    headers: await authHeaders(''),
+  });
+  await ensureOk(res, 'Failed to load scam check');
+  return res.json() as Promise<SavedScamCheck>;
+}
+
 export async function askTenantRights(question: string, state: string) {
   const res = await fetch(`${BACKEND_URL}/rights/ask`, {
     method: 'POST',
@@ -112,7 +157,13 @@ export async function askTenantRights(question: string, state: string) {
     body: JSON.stringify({ question, state }),
   });
   await ensureOk(res, 'Rights query failed');
-  return res.json();
+  return res.json() as Promise<RightsAnswer>;
+}
+
+export async function getTenantRightsCoverage() {
+  const res = await fetch(`${BACKEND_URL}/rights/states`);
+  await ensureOk(res, 'Failed to load rights coverage');
+  return res.json() as Promise<RightsCoverage>;
 }
 
 export async function createSpacePost(data: object) {
@@ -143,11 +194,23 @@ export async function getMyMatches(userId: string) {
   return res.json();
 }
 
-export async function listSpacePosts(city?: string, state?: string, maxRent?: number) {
+function buildMatchFilterParams(filters?: MatchBrowseFilters) {
   const params = new URLSearchParams();
-  if (city) params.set('city', city);
-  if (state) params.set('state', state);
-  if (maxRent) params.set('max_rent', String(maxRent));
+  if (!filters) return params;
+  if (filters.city) params.set('city', filters.city);
+  if (filters.state) params.set('state', filters.state);
+  if (filters.budget !== undefined) params.set('budget', String(filters.budget));
+  if (filters.move_in_by) params.set('move_in_by', filters.move_in_by);
+  if (filters.furnished) params.set('furnished', 'true');
+  if (filters.parking) params.set('parking', 'true');
+  if (filters.laundry) params.set('laundry', 'true');
+  if (filters.pets) params.set('pets', 'true');
+  if (filters.ac) params.set('ac', 'true');
+  return params;
+}
+
+export async function listSpacePosts(filters?: MatchBrowseFilters) {
+  const params = buildMatchFilterParams(filters);
   const res = await fetch(`${BACKEND_URL}/match/spaces?${params}`, {
     headers: await authHeaders(''),
   });
@@ -155,10 +218,8 @@ export async function listSpacePosts(city?: string, state?: string, maxRent?: nu
   return res.json();
 }
 
-export async function listSeekerPosts(city?: string, state?: string) {
-  const params = new URLSearchParams();
-  if (city) params.set('city', city);
-  if (state) params.set('state', state);
+export async function listSeekerPosts(filters?: MatchBrowseFilters) {
+  const params = buildMatchFilterParams(filters);
   const res = await fetch(`${BACKEND_URL}/match/seekers?${params}`, {
     headers: await authHeaders(''),
   });
@@ -181,5 +242,20 @@ export async function sendMessage(matchId: string, content: string) {
     body: JSON.stringify({ content }),
   });
   await ensureOk(res, 'Failed to send message');
-  return res.json();
+  return res.json() as Promise<Message>;
+}
+
+export async function createReport(data: {
+  target_type: ReportTargetType;
+  target_id: string;
+  reason: string;
+  details?: string;
+}) {
+  const res = await fetch(`${BACKEND_URL}/match/reports`, {
+    method: 'POST',
+    headers: await authHeaders(),
+    body: JSON.stringify(data),
+  });
+  await ensureOk(res, 'Failed to submit report');
+  return res.json() as Promise<{ message: string }>;
 }

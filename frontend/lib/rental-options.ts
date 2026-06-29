@@ -1,0 +1,78 @@
+export const US_STATES = [
+  'Alabama',
+  'Alaska',
+  'Arizona',
+  'Arkansas',
+  'California',
+  'Colorado',
+  'Connecticut',
+  'Delaware',
+  'Florida',
+  'Georgia',
+  'Hawaii',
+  'Idaho',
+  'Illinois',
+  'Indiana',
+  'Iowa',
+  'Kansas',
+  'Kentucky',
+  'Louisiana',
+  'Maine',
+  'Maryland',
+  'Massachusetts',
+  'Michigan',
+  'Minnesota',
+  'Mississippi',
+  'Missouri',
+  'Montana',
+  'Nebraska',
+  'Nevada',
+  'New Hampshire',
+  'New Jersey',
+  'New Mexico',
+  'New York',
+  'North Carolina',
+  'North Dakota',
+  'Ohio',
+  'Oklahoma',
+  'Oregon',
+  'Pennsylvania',
+  'Rhode Island',
+  'South Carolina',
+  'South Dakota',
+  'Tennessee',
+  'Texas',
+  'Utah',
+  'Vermont',
+  'Virginia',
+  'Washington',
+  'West Virginia',
+  'Wisconsin',
+  'Wyoming',
+] as const;
+
+export const SPACE_APARTMENT_TYPES = [
+  { value: 'studio', label: 'Studio' },
+  { value: '1bhk', label: '1 bedroom apartment' },
+  { value: '2bhk', label: '2 bedroom apartment' },
+  { value: '3bhk', label: '3 bedroom apartment' },
+  { value: 'room_only', label: 'Private room only' },
+] as const;
+
+export const SPACE_LEASE_TYPES = [
+  { value: 'existing', label: 'Join my existing lease' },
+  { value: 'new_cosign', label: 'Sign a new lease together' },
+  { value: 'sublet', label: 'Sublet / short replacement' },
+] as const;
+
+export const LEASE_DURATION_OPTIONS = [
+  { value: 'short_term', label: 'Short-term' },
+  { value: 'long_term', label: 'Long-term' },
+  { value: 'flexible', label: 'Flexible' },
+] as const;
+
+export const SCHEDULE_OPTIONS = [
+  { value: 'early_bird', label: 'Early bird' },
+  { value: 'flexible', label: 'Flexible' },
+  { value: 'night_owl', label: 'Night owl' },
+] as const;

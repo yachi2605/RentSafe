@@ -7,7 +7,7 @@ import { Match } from '@/types';
 import MatchCard from '@/components/MatchCard';
 
 export default function MyMatchesPage() {
-  const supabase = createClientComponentClient();
+  const [supabase] = useState(() => createClientComponentClient());
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +29,7 @@ export default function MyMatchesPage() {
       }
     };
     load();
-  }, []);
+  }, [supabase]);
 
   return (
     <div className="space-y-6">

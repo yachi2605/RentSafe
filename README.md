@@ -1,95 +1,146 @@
-# 🏠 RentSafe
+# RentPilot
 
-**The renter-safety platform for students — analyze your lease, detect rental scams, know your rights, and find a compatible roommate. All in one place.**
+RentPilot is a renter-safety platform for students and early-career renters. It combines four high-friction renter jobs in one product:
 
-Rental scam reports targeting students rose 22% in 2025, and international students wiring deposits to fake landlords are the most common victims. RentSafe puts an AI safety layer between students and the rental market.
+- lease review
+- rental scam detection
+- grounded tenant-rights guidance
+- roommate / room matching
 
-<!-- 🔗 Live demo: ADD_VERCEL_URL_HERE • 🎬 Demo video: ADD_GIF_HERE -->
+The goal is not to be a legal service or a listing marketplace. The goal is to give renters better decision support before they sign, pay, or message.
 
-## Features
+## What It Does
 
-| | Feature | What it does |
-|---|---|---|
-| 📄 | **Lease Analyzer** | Upload a lease PDF → plain-English summary, red-flag clauses with risk levels, negotiation tips, and a tenant-friendliness score |
-| 🚨 | **Scam Detector** | Paste any listing → 0–100 scam score, specific red flags, hidden-fee estimates, and safety tips |
-| ⚖️ | **Tenant Rights Bot** | State-specific answers to renter questions, with a hallucination guard that refuses rather than guesses |
-| 🤝 | **Roommate Matcher** | Post a space or seek one → cosine-similarity matching over lifestyle vectors, with an explainable factor-by-factor breakdown of *why* you matched |
-| 💬 | **Match Chat** | Built-in messaging between matched users — no phone numbers shared, toxicity-filtered |
-| 🎓 | **Student Verification** | `.edu` accounts get a verified-student badge |
+### Current launch scope
+
+- **Lease Analyzer**: upload a lease PDF and get a plain-English summary, red flags, negotiation tips, and a tenant-friendliness score.
+- **Scam Detector**: paste a listing and get a scam score, red flags, and likely fee issues.
+- **Tenant Rights Bot**: ask renter questions and get source-backed answers for the current launch states.
+- **Roommate Match**: browse spaces and seekers, post your own listing, and see compatibility breakdowns instead of black-box matches.
+- **Match Chat + Safety Rails**: on-platform chat, contact-detail redaction, moderation reports, and trust messaging.
+- **History + Dashboard**: saved lease analyses, saved scam checks, and quick-return navigation.
+
+### Current rights coverage
+
+The grounded rights bot currently ships with launch coverage for:
+
+- California
+- Illinois
+
+Outside that scope, the bot refuses instead of pretending to know the law.
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    subgraph Client
-        FE["Next.js 14 App Router<br/>(Vercel)"]
-    end
-    subgraph API["FastAPI (Render)"]
-        MW["CORS-safe error middleware"]
-        AUTH["JWT verification<br/>+ daily quotas<br/>+ LLM response cache"]
-        MATCH["Matching engine<br/>(cosine similarity + hard filters)"]
-        SEC["Security layer<br/>(PII scrubbing · prompt-injection guard · toxicity check)"]
-    end
-    subgraph Data["Supabase"]
-        PG[("Postgres + RLS")]
-        GOTRUE["Auth"]
-    end
-    LLM["OpenAI API<br/>(structured outputs)"]
-
-    FE -->|"Bearer JWT"| MW --> AUTH
-    AUTH --> MATCH --> PG
-    AUTH -->|"cache miss only"| SEC --> LLM
-    FE -->|"signup/login"| GOTRUE
-    GOTRUE -->|"trigger: auto-create profile"| PG
+```text
+Next.js frontend
+  -> calls FastAPI backend with Supabase-authenticated requests
+FastAPI backend
+  -> verifies user session
+  -> applies quotas + cache + safety checks
+  -> calls OpenAI only when needed
+  -> reads/writes Supabase Postgres
+Supabase
+  -> Auth
+  -> Postgres
+  -> RLS-backed user data
 ```
 
-## Engineering highlights
+### Key engineering decisions
 
-- **Cost-bounded AI** — every LLM endpoint requires a verified login, enforces per-user daily quotas (atomic Postgres `RPC` counter), and serves repeated inputs from a response cache. Worst-case daily spend is a known formula, not a surprise.
-- **Explainable matching** — roommate compatibility is an 11-dimensional lifestyle vector (cleanliness, noise, guests, schedule, smoking, budget, must-haves) scored with cosine similarity behind hard city/budget filters; the API returns a per-factor breakdown so users see *why* they matched.
-- **Defense in depth** — Postgres row-level security with per-table policies, a trusted service-role backend, PII scrubbing (Presidio) before lease text reaches the LLM, prompt-injection delimiters on user input, and regex toxicity gating on all user-generated content.
-- **Honest errors** — custom middleware returns unhandled exceptions as CORS-safe JSON, so the frontend always shows the real failure instead of an opaque "Failed to fetch".
-- **LLM reliability** — structured outputs parsed into Pydantic schemas; the rights bot is prompted to refuse rather than invent statutes.
+- **Cost-bounded AI**: paid AI endpoints require login, enforce per-user quotas, and cache repeat inputs.
+- **Explainable matching**: compatibility is computed from renter and apartment signals, then returned with factor-by-factor reasoning.
+- **Safer failure modes**: the rights bot refuses outside supported coverage; backend errors return CORS-safe JSON; public text is moderated before reuse.
+- **Lean launch runtime**: the default backend requirements only include packages needed to run the launch product.
 
-## Stack
+## Tech Stack
 
-Next.js 14 · TypeScript · Tailwind — FastAPI · Pydantic · scikit-learn · Presidio — Supabase (Postgres, Auth, RLS) — OpenAI structured outputs
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **Backend**: FastAPI, Pydantic
+- **Data/Auth**: Supabase Postgres + Auth + RLS
+- **AI**: OpenAI structured outputs
 
-## Run it locally
+Optional heavier local dependencies such as Presidio-based PII tooling are separated from the default launch runtime.
+
+## Repository Layout
+
+```text
+frontend/   Next.js app and UI components
+backend/    FastAPI API, services, scripts, and env examples
+database/   schema, RLS, cache/quota SQL, and rights-source seed data
+DEMO.md     demo runbook
+DEPLOY.md   deployment notes
+render.yaml Render backend deployment config
+```
+
+## Run Locally
+
+### 1. Database setup
+
+Run these in Supabase SQL Editor:
+
+1. `database/schema.sql`
+2. `database/rls_policies.sql`
+3. `database/api_protection.sql`
+4. `database/rights_sources_seed.sql`
+
+If the database was created before the later weeks landed, also run:
+
+5. `database/manual_migration_weeks_2_to_5.sql`
+
+### 2. Backend
 
 ```bash
-# 1. Supabase: run database/schema.sql, rls_policies.sql, api_protection.sql
+python3 -m pip install -r backend/requirements.txt
+cp backend/.env.example backend/.env
+npm run backend:dev
+```
 
-# 2. Backend (Python 3.12)
-cd backend
-pip install -r requirements.txt
-cp .env.example .env   # fill in OpenAI + Supabase keys
-uvicorn main:app --reload
+### 3. Frontend
 
-# 3. Frontend
-cd frontend
+```bash
 npm install
-cp .env.local.example .env.local   # fill in Supabase URL + publishable key
-npm run dev
+cp frontend/.env.local.example frontend/.env.local
+npm run frontend:dev
 ```
 
-Seed demo data and verify everything:
+### 4. Verification
 
 ```bash
-cd backend
-python scripts/seed_demo.py     # 4 demo users + matching posts
-python scripts/smoke_test.py    # checks every endpoint
+npm run backend:check
+npm run build
 ```
+
+For a fuller walkthrough, use [DEMO.md](DEMO.md).
+
+## GitHub / Portfolio Review Strategy
+
+This repository is intentionally the **source-of-truth project repo**, not a permanently open public demo.
+
+Reason: the AI features use paid API credits. If a public live URL is shared broadly, strangers can consume real backend and OpenAI usage.
+
+### Recommended way to present it
+
+- keep the GitHub repo clean and public
+- use this README to explain scope and architecture
+- add screenshots or a short screen-recorded walkthrough in the repo or project post
+- only share a live deployment privately, temporarily, or with demo accounts if you are comfortable with the spend
+
+If you want a truly public live showcase later, the right next step is a **mock/demo mode** or a **read-only hosted demo** that does not hit your paid AI stack.
 
 ## Deployment
 
-Runs free on Vercel (frontend) + Render (`render.yaml`) + Supabase. Full guide: [DEPLOY.md](DEPLOY.md).
+Reference deployment notes live in [DEPLOY.md](DEPLOY.md). The project is set up for:
 
-## Roadmap
+- Vercel for the frontend
+- Render for the backend
+- Supabase for database and auth
 
-Campus-distance matching for space posts · listing-URL scam checks · international-student onboarding · Realtime chat via Supabase channels
+## Important Notes
+
+- RentPilot is informational software, not legal advice.
+- The project should never expose real secret keys in tracked files.
+- `.env` files stay local and are ignored by git.
 
 ---
 
-Built by [Yachi Darji](https://www.linkedin.com/) — Illinois Institute of Technology
-# RentSafe1
+Built by Yachi Darji.

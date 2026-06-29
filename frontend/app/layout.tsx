@@ -17,7 +17,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'RentSafe — Renter-first housing platform',
+  title: 'RentPilot — Renter-first housing platform',
   description: 'Analyze leases, detect scams, understand rights, and find renter roommates.',
   manifest: '/manifest.webmanifest',
   icons: {
@@ -41,7 +41,7 @@ export default function RootLayout({
     <html lang="en" className={`${sora.variable} ${inter.variable}`}>
       <body className="min-h-screen bg-brand-navy text-white">
         <Navbar />
-        <main className="mx-auto min-h-[calc(100vh-160px)] max-w-6xl px-6 py-10">
+        <main className="mx-auto min-h-[calc(100vh-160px)] max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
           {children}
         </main>
         <Footer />

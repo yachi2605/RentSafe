@@ -1,4 +1,4 @@
-"""Service layer package for RentSafe."""
+"""Service layer package for RentPilot."""
 
 from .openai_service import analyze_lease, answer_tenant_rights, check_scam
 from .match_service import find_matches_for_seeker, find_matches_for_space

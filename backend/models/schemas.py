@@ -59,14 +59,49 @@ class ScamCheckResponse(BaseModel):
     tips: list[str]
 
 
+class LeaseAnalysisHistoryItem(BaseModel):
+    id: str
+    file_name: str = ""
+    file_url: str = ""
+    created_at: str
+    result: LeaseAnalysisResponse
+
+
+class LeaseAnalysisHistoryResponse(BaseModel):
+    items: list[LeaseAnalysisHistoryItem]
+
+
+class ScamCheckHistoryItem(BaseModel):
+    id: str
+    listing_input: str = ""
+    created_at: str
+    result: ScamCheckResponse
+
+
+class ScamCheckHistoryResponse(BaseModel):
+    items: list[ScamCheckHistoryItem]
+
+
 class RightsQuestionRequest(BaseModel):
     question: str
     state: str
 
 
+class RightsSourceReference(BaseModel):
+    title: str
+    url: str
+    organization: str = ""
+    topic: str = ""
+
+
 class RightsAnswerResponse(BaseModel):
     answer: str
-    sources: list[str] = Field(default_factory=list)
+    state: str
+    supported_state: bool = False
+    refused: bool = False
+    coverage_message: str = ""
+    disclaimer: str = ""
+    sources: list[RightsSourceReference] = Field(default_factory=list)
 
 
 class SpacePostCreate(BaseModel):
@@ -144,3 +179,10 @@ class MessageResponse(BaseModel):
     sender_id: str
     content: str
     created_at: str
+
+
+class ReportCreate(BaseModel):
+    target_type: str
+    target_id: str
+    reason: str
+    details: Optional[str] = None

@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: rentsafe-api
+    name: rentpilot-api
     runtime: python
     plan: free
     rootDir: backend

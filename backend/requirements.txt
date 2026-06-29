@@ -1,14 +1,9 @@
 fastapi==0.111.0
 uvicorn==0.29.0
-anthropic==0.26.0
 openai==1.99.1
-PyMuPDF==1.24.3
-scikit-learn==1.4.2
-numpy==1.26.4
+PyMuPDF>=1.25,<1.26
 python-multipart==0.0.9
 pydantic==2.7.1
 supabase==2.5.0
 python-dotenv==1.0.1
-sqlalchemy==2.0.30
-presidio-analyzer==2.2.354
-presidio-anonymizer==2.2.354
+requests==2.32.5

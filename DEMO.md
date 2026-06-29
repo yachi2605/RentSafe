@@ -1,22 +1,25 @@
-# RentSafe — Demo Runbook
+# RentPilot — Demo Runbook
 
 ## 1. One-time setup (do once, ~3 min)
 
-1. Supabase → SQL Editor → paste and run **all of `database/rls_policies.sql`**
-   (it was extended overnight — re-run the whole file even if you ran part of it before).
+1. Supabase → SQL Editor → run, in order:
+   - `database/schema.sql`
+   - `database/rls_policies.sql`
+   - `database/api_protection.sql`
+   - `database/rights_sources_seed.sql`
 2. Supabase → Authentication → Sign In / Up → **disable "Confirm email"** (demo accounts skip the inbox).
 
 ## 2. Start the app
 
 ```bash
+npm install
+python3 -m pip install -r backend/requirements.txt
+
 # Terminal 1
-conda activate rentsafe
-cd "/Users/yachidarji/Documents/Folder A/Rentsafe/backend"
-python -m uvicorn main:app --reload
+npm run backend:dev
 
 # Terminal 2
-cd "/Users/yachidarji/Documents/Folder A/Rentsafe/frontend"
-npm run dev
+npm run frontend:dev
 ```
 
 ## 3. Seed demo data (backend must be running)
@@ -25,7 +28,7 @@ npm run dev
 cd backend && python scripts/seed_demo.py
 ```
 
-Creates 4 confirmed accounts (password `RentSafeDemo1!`) and 2 spaces + 2 seekers
+Creates 4 confirmed accounts (password `RentPilotDemo1!`) and 2 spaces + 2 seekers
 in Chicago that match each other, so match cards are populated immediately.
 
 ## 4. Verify everything
@@ -46,14 +49,3 @@ All lines should say PASS.
    Western Union. No viewings." → high scam score + red flags.
 4. **Lease Analyzer** → upload any lease PDF → red flags, tips, score.
 5. **Tenant Rights** → state Illinois → "How much notice before my landlord can enter?"
-
-## Demo accounts
-
-| email | role |
-|---|---|
-| demo.poster1@rentsafe.app | has a quiet 2BHK near IIT ($1100) |
-| demo.poster2@rentsafe.app | has a social pet-friendly 3BHK ($950) |
-| demo.seeker1@rentsafe.app | tidy early-bird grad student |
-| demo.seeker2@rentsafe.app | night-owl intern with a cat |
-
-Password for all: `RentSafeDemo1!`

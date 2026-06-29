@@ -5,9 +5,35 @@ CREATE TABLE profiles (
   email TEXT UNIQUE,
   avatar_url TEXT,
   bio TEXT,
+  school TEXT,
+  campus TEXT,
+  preferred_city TEXT,
+  preferred_state TEXT,
+  budget_goal_min NUMERIC,
+  budget_goal_max NUMERIC,
+  preferred_move_in_date DATE,
+  prefers_furnished BOOLEAN DEFAULT FALSE,
+  prefers_parking BOOLEAN DEFAULT FALSE,
+  prefers_laundry BOOLEAN DEFAULT FALSE,
+  prefers_pets BOOLEAN DEFAULT FALSE,
+  prefers_ac BOOLEAN DEFAULT FALSE,
   tos_accepted BOOLEAN DEFAULT FALSE,        -- Has user accepted Terms of Service?
   tos_accepted_at TIMESTAMPTZ,               -- Timestamp of acceptance (legal record)
   tos_version TEXT DEFAULT '1.0',            -- Which version they accepted
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Curated legal source registry for grounded tenant-rights answers
+CREATE TABLE rights_sources (
+  id TEXT PRIMARY KEY,
+  state TEXT NOT NULL,
+  organization TEXT NOT NULL,
+  title TEXT NOT NULL,
+  source_url TEXT NOT NULL,
+  topic TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  keywords TEXT[] DEFAULT '{}',
+  is_official BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -119,6 +145,7 @@ CREATE TABLE lease_analyses (
   summary TEXT,
   negotiation_tips JSONB,
   tenant_friendly_score INT,
+  extracted_text TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -131,5 +158,18 @@ CREATE TABLE scam_checks (
   red_flags JSONB,
   hidden_fees JSONB,
   verdict TEXT,
+  tips JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Moderation reports for users, listings, and conversations
+CREATE TABLE reports (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  reporter_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  target_type TEXT NOT NULL,            -- 'space_post' | 'seeker_post' | 'match'
+  target_id UUID NOT NULL,
+  reason TEXT NOT NULL,
+  details TEXT,
+  status TEXT NOT NULL DEFAULT 'open',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

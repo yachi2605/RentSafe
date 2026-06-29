@@ -1,4 +1,4 @@
--- RentSafe: RLS policies + auto profile creation
+-- RentPilot: RLS policies + auto profile creation
 -- Run this in the Supabase SQL editor.
 
 -- 1) Auto-create a profile row whenever a new auth user signs up.
@@ -47,6 +47,8 @@ CREATE POLICY "profiles_insert_own" ON public.profiles
 DROP POLICY IF EXISTS "profiles_update_own" ON public.profiles;
 CREATE POLICY "profiles_update_own" ON public.profiles
   FOR UPDATE TO authenticated USING (auth.uid() = id);
+
+ALTER TABLE public.rights_sources ENABLE ROW LEVEL SECURITY;
 
 -- 4) Post/match/message tables.
 --    The FastAPI backend uses the service role key (bypasses RLS), so these
@@ -100,3 +102,11 @@ ALTER TABLE public.scam_checks ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "scam_checks_own" ON public.scam_checks;
 CREATE POLICY "scam_checks_own" ON public.scam_checks
   FOR SELECT TO authenticated USING (auth.uid() = user_id);
+
+ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "reports_select_own" ON public.reports;
+CREATE POLICY "reports_select_own" ON public.reports
+  FOR SELECT TO authenticated USING (auth.uid() = reporter_id);
+DROP POLICY IF EXISTS "reports_insert_own" ON public.reports;
+CREATE POLICY "reports_insert_own" ON public.reports
+  FOR INSERT TO authenticated WITH CHECK (auth.uid() = reporter_id);

@@ -4,7 +4,31 @@ export interface Profile {
   email?: string;
   avatar_url?: string;
   bio?: string;
+  school?: string;
+  campus?: string;
+  preferred_city?: string;
+  preferred_state?: string;
+  budget_goal_min?: number;
+  budget_goal_max?: number;
+  preferred_move_in_date?: string;
+  prefers_furnished?: boolean;
+  prefers_parking?: boolean;
+  prefers_laundry?: boolean;
+  prefers_pets?: boolean;
+  prefers_ac?: boolean;
   is_student_verified?: boolean;
+}
+
+export interface MatchBrowseFilters {
+  city?: string;
+  state?: string;
+  budget?: number;
+  move_in_by?: string;
+  furnished?: boolean;
+  parking?: boolean;
+  laundry?: boolean;
+  pets?: boolean;
+  ac?: boolean;
 }
 
 export type LeaseType = 'existing' | 'new_cosign' | 'sublet';
@@ -12,6 +36,7 @@ export type LeaseDuration = 'short_term' | 'long_term' | 'flexible';
 export type Schedule = 'early_bird' | 'night_owl' | 'flexible';
 export type GenderPref = 'any' | 'male' | 'female' | 'non_binary';
 export type ApartmentType = 'studio' | '1bhk' | '2bhk' | '3bhk' | 'room_only';
+export type ReportTargetType = 'space_post' | 'seeker_post' | 'match';
 
 export interface SpacePost {
   id: string;
@@ -88,6 +113,7 @@ export interface Match {
   seeker_seen: boolean;
   created_at: string;
   breakdown?: MatchFactor[];
+  summary?: string;
 }
 
 export interface Message {
@@ -96,6 +122,7 @@ export interface Message {
   sender_id: string;
   content: string;
   created_at: string;
+  moderation_notice?: string;
 }
 
 export interface LeaseRedFlag {
@@ -131,4 +158,43 @@ export interface ScamCheckResult {
   red_flags: { flag: string; explanation: string }[];
   hidden_fees: { fee_type: string; estimated_amount: string }[];
   tips: string[];
+}
+
+export interface SavedLeaseAnalysis {
+  id: string;
+  file_name: string;
+  file_url: string;
+  created_at: string;
+  result: LeaseAnalysisResult;
+}
+
+export interface SavedScamCheck {
+  id: string;
+  listing_input: string;
+  created_at: string;
+  result: ScamCheckResult;
+}
+
+export interface RightsSourceReference {
+  title: string;
+  url: string;
+  organization: string;
+  topic: string;
+}
+
+export interface RightsAnswer {
+  answer: string;
+  state: string;
+  supported_state: boolean;
+  refused: boolean;
+  coverage_message: string;
+  disclaimer: string;
+  sources: RightsSourceReference[];
+}
+
+export interface RightsCoverage {
+  states: string[];
+  supported_states: string[];
+  coverage_topics: string[];
+  coverage_message: string;
 }

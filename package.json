@@ -1,13 +1,15 @@
 {
-  "name": "rentsafe",
+  "name": "rentpilot",
   "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "npm --prefix frontend run dev",
+    "frontend:dev": "npm --prefix frontend run dev -- --hostname 127.0.0.1 --port 3000",
+    "backend:dev": "sh -c 'cd backend && python3 -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload'",
     "build": "npm --prefix frontend run build",
     "start": "npm --prefix frontend run start",
     "lint": "npm --prefix frontend run lint",
-    "backend:check": "python3 -m compileall backend",
+    "backend:check": "python3 backend/scripts/check_app.py",
     "check": "npm run backend:check && npm run build"
   }
 }

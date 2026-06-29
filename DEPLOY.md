@@ -1,4 +1,4 @@
-# RentSafe — Free Production Deployment
+# RentPilot — Free Production Deployment
 
 Total cost: **$0/month** (Vercel Hobby + Render Free + Supabase Free).
 Only real spend is OpenAI usage, which is capped by per-user daily quotas.
@@ -9,7 +9,12 @@ In the Supabase SQL editor run, in order (skip any you've already run):
 
 1. `database/schema.sql`
 2. `database/rls_policies.sql`
-3. `database/api_protection.sql`  ← new (quotas + LLM cache)
+3. `database/api_protection.sql`
+4. `database/rights_sources_seed.sql`
+
+If the project already existed before Weeks 2-5 were added, run:
+
+5. `database/manual_migration_weeks_2_to_5.sql`
 
 ## 1. Push the repo to GitHub
 
@@ -21,7 +26,7 @@ Render and Vercel both deploy from a GitHub repo. Private repo is fine.
 2. Fill in the env vars when prompted: `OPENAI_API_KEY`, `OPENAI_MODEL`,
    `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` (the `sb_secret_...` one),
    and leave `FRONTEND_ORIGIN` empty until step 3 gives you the Vercel URL.
-3. Deploy → note the URL, e.g. `https://rentsafe-api.onrender.com`.
+3. Deploy → note the URL, e.g. `https://rentpilot-api.onrender.com`.
 
 Free-tier behavior: the service sleeps after 15 min idle and takes ~30s to
 wake on the first request. Acceptable for a campus launch; upgrade later if
@@ -35,7 +40,7 @@ it bothers users.
    - `NEXT_PUBLIC_SUPABASE_URL` = your Supabase URL
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = the `sb_publishable_...` key
    - `NEXT_PUBLIC_BACKEND_URL` = the Render URL from step 2
-4. Deploy → note the URL, e.g. `https://rentsafe.vercel.app`.
+4. Deploy → note the URL, e.g. `https://rentpilot.vercel.app`.
 
 ## 4. Connect them
 
@@ -47,7 +52,7 @@ it bothers users.
 ## 5. Verify production
 
 ```bash
-BACKEND_URL=https://rentsafe-api.onrender.com python backend/scripts/smoke_test.py
+BACKEND_URL=https://rentpilot-api.onrender.com python backend/scripts/smoke_test.py
 ```
 
 (or just open the Vercel URL and run through the demo flow in DEMO.md).

@@ -10,6 +10,7 @@ import {
   getMoveOutChecklist,
 } from '@/lib/api';
 import { LeaseAnalysisResult, ProactiveQAItem, MoveOutItem } from '@/types';
+import { trackEvent } from '@/lib/analytics';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -57,10 +58,15 @@ export default function LeaseAnalyzerPage() {
     setError(null);
 
     try {
+      trackEvent('lease_analysis_started', { file_type: file.type || 'application/pdf' });
       const response = await analyzeLease(file);
       setResult(response);
       const text = response.extracted_text || '';
       setLeaseText(text);
+      trackEvent('lease_analysis_completed', {
+        red_flag_count: response.red_flags?.length || 0,
+        score: response.tenant_friendly_score,
+      });
 
       // Auto-trigger proactive Q&A immediately after analysis
       if (text) {
@@ -76,6 +82,7 @@ export default function LeaseAnalyzerPage() {
         }
       }
     } catch (err) {
+      trackEvent('lease_analysis_failed');
       setError(err instanceof Error ? err.message : 'Lease analysis failed');
     } finally {
       setLoading(false);
@@ -90,10 +97,13 @@ export default function LeaseAnalyzerPage() {
     setMessages((prev) => [...prev, { role: 'user', content: q }]);
     setQaLoading(true);
     try {
+      trackEvent('lease_question_submitted');
       const res = await askLeaseQuestionText(leaseText, q);
       setMessages((prev) => [...prev, { role: 'bot', content: res.answer }]);
+      trackEvent('lease_question_answered');
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
     } catch (err) {
+      trackEvent('lease_question_failed');
       setQaError(err instanceof Error ? err.message : 'Failed to get answer');
     } finally {
       setQaLoading(false);
@@ -105,9 +115,12 @@ export default function LeaseAnalyzerPage() {
     setChecklistLoading(true);
     setChecklistError(null);
     try {
+      trackEvent('moveout_checklist_requested');
       const res = await getMoveOutChecklist(leaseText);
       setChecklist(res.items || []);
+      trackEvent('moveout_checklist_completed', { item_count: res.items?.length || 0 });
     } catch (err) {
+      trackEvent('moveout_checklist_failed');
       setChecklistError(err instanceof Error ? err.message : 'Failed to generate checklist');
     } finally {
       setChecklistLoading(false);
@@ -136,7 +149,7 @@ export default function LeaseAnalyzerPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold">Lease Analyzer</h1>
+        <h1 className="text-3xl font-semibold sm:text-4xl">Lease Analyzer</h1>
         <p className="text-sm text-white/60">
           Upload your lease — get red flags, answers to key questions, and negotiation emails in seconds.
         </p>
@@ -150,8 +163,8 @@ export default function LeaseAnalyzerPage() {
           <LeaseResultCard result={result} />
 
           {/* ── Proactive Q&A ── */}
-          <section className="space-y-3 rounded-2xl border border-brand-green/20 bg-brand-green/5 p-6">
-            <div className="flex items-center gap-2">
+          <section className="space-y-3 rounded-2xl border border-brand-green/20 bg-brand-green/5 p-5 sm:p-6">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-lg">🔍</span>
               <h2 className="font-semibold">Key things we found in your lease</h2>
               {proactiveLoading && (
@@ -188,8 +201,8 @@ export default function LeaseAnalyzerPage() {
 
           {/* ── Tab switcher: Q&A chat | Move-out checklist ── */}
           {leaseText && (
-            <section className="space-y-4 rounded-2xl border border-white/10 bg-white/5 p-6">
-              <div className="flex gap-2">
+            <section className="space-y-4 rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <button
                   onClick={() => setTab('qa')}
                   className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
@@ -244,7 +257,7 @@ export default function LeaseAnalyzerPage() {
                     <div ref={bottomRef} />
                   </div>
                   {qaError && <p className="text-sm text-red-400">{qaError}</p>}
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row">
                     <Input
                       placeholder="Ask about your lease…"
                       value={question}
@@ -253,7 +266,7 @@ export default function LeaseAnalyzerPage() {
                       disabled={qaLoading}
                       className="flex-1"
                     />
-                    <Button onClick={handleAsk} disabled={qaLoading || !question.trim()}>
+                    <Button onClick={handleAsk} disabled={qaLoading || !question.trim()} className="w-full sm:w-auto">
                       {qaLoading ? '…' : 'Ask'}
                     </Button>
                   </div>
@@ -271,7 +284,7 @@ export default function LeaseAnalyzerPage() {
 
                   {!checklistLoading && checklist.length > 0 && (
                     <>
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <p className="text-sm text-white/50">
                           {checklistDone.size}/{checklist.length} tasks complete
                         </p>

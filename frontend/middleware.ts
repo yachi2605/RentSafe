@@ -4,6 +4,7 @@ import type { NextRequest } from 'next/server';
 
 const PROTECTED_ROUTES = [
   '/dashboard',
+  '/history',
   '/lease-analyzer',
   '/scam-checker',
   '/tenant-rights',
@@ -42,6 +43,7 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     '/dashboard/:path*',
+    '/history/:path*',
     '/lease-analyzer/:path*',
     '/scam-checker/:path*',
     '/tenant-rights/:path*',

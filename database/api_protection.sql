@@ -1,4 +1,4 @@
--- RentSafe: API usage quotas + LLM response cache
+-- RentPilot: API usage quotas + LLM response cache
 -- Run in the Supabase SQL editor (after rls_policies.sql).
 
 CREATE TABLE IF NOT EXISTS public.api_usage (

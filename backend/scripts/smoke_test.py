@@ -1,4 +1,4 @@
-"""RentSafe smoke test — checks every backend feature in one run.
+"""RentPilot smoke test — checks every backend feature in one run.
 
 Usage (backend running on :8000):
 
@@ -49,6 +49,7 @@ def main() -> None:
         r = requests.get(f"{BACKEND_URL}/rights/states", timeout=10)
         expect(r.ok, f"{r.status_code}: {r.text[:200]}")
         expect(len(r.json().get("states", [])) == 50, "expected 50 states")
+        expect(bool(r.json().get("supported_states")), "expected launch coverage states")
     check("GET /rights/states", states)
 
     def spaces():
@@ -97,7 +98,7 @@ def main() -> None:
         login = requests.post(
             f"{supabase_url}/auth/v1/token?grant_type=password",
             headers={"apikey": service_key, "Content-Type": "application/json"},
-            json={"email": "demo.seeker1@rentsafe.app", "password": "RentSafeDemo1!"},
+            json={"email": "demo.seeker1@rentpilot.app", "password": "RentPilotDemo1!"},
             timeout=30,
         )
         if not login.ok:
@@ -127,7 +128,9 @@ def main() -> None:
                     timeout=120,
                 )
                 expect(r.ok, f"{r.status_code}: {r.text[:300]}")
-                expect(bool(r.json().get("answer")), "empty answer")
+                body = r.json()
+                expect(bool(body.get("answer")), "empty answer")
+                expect("supported_state" in body and "sources" in body, "missing grounded rights fields")
             check("POST /rights/ask (OpenAI + quota + cache)", rights)
     else:
         print("  SKIP  LLM endpoints (run with --with-llm to include)")

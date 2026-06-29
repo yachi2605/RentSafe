@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 
 interface MessageThreadProps {
   messages: Message[];
-  onSend: (content: string) => Promise<void>;
+  onSend: (content: string) => Promise<boolean>;
   currentUserId?: string;
 }
 
@@ -18,9 +18,14 @@ export default function MessageThread({ messages, onSend, currentUserId }: Messa
   const handleSend = async () => {
     if (!draft.trim()) return;
     setSending(true);
-    await onSend(draft);
-    setDraft('');
-    setSending(false);
+    try {
+      const sent = await onSend(draft);
+      if (sent) {
+        setDraft('');
+      }
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -45,13 +50,13 @@ export default function MessageThread({ messages, onSend, currentUserId }: Messa
           );
         })}
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <Input
           placeholder="Type a message"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
         />
-        <Button onClick={handleSend} disabled={sending}>
+        <Button onClick={handleSend} disabled={sending} className="w-full sm:w-auto">
           {sending ? 'Sending...' : 'Send'}
         </Button>
       </div>

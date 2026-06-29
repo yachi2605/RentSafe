@@ -1,14 +1,3 @@
-"""Database model package for RentSafe."""
+"""Model package for Pydantic request/response schemas."""
 
-from .db_models import Base, LeaseAnalysis, Match, Message, Profile, ScamCheck, SeekerPost, SpacePost
-
-__all__ = [
-	"Base",
-	"LeaseAnalysis",
-	"Match",
-	"Message",
-	"Profile",
-	"ScamCheck",
-	"SeekerPost",
-	"SpacePost",
-]
+__all__: list[str] = []
