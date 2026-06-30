@@ -46,7 +46,7 @@ export default function ScamHistoryPage() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-300/80">
-              Week 3 retention
+              Saved checks
             </p>
             <h1 className="font-sora text-4xl font-bold">Scam history</h1>
             <p className="text-sm leading-relaxed text-white/65">

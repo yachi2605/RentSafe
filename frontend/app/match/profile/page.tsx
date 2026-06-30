@@ -249,7 +249,7 @@ export default function MatchProfilePage() {
         <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300/80">
-              Week 4 campus profile
+              Renter profile
             </p>
             <h1 className="font-sora text-3xl font-bold sm:text-4xl">Your renter profile</h1>
             <p className="text-sm leading-relaxed text-white/65">
