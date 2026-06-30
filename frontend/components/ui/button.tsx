@@ -5,20 +5,24 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   variant?: 'primary' | 'secondary' | 'ghost';
 }
 
+export function buttonClasses(variant: ButtonProps['variant'] = 'primary', className?: string) {
+  const base =
+    'inline-flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full px-5 text-sm font-semibold leading-none transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy disabled:cursor-not-allowed disabled:opacity-50';
+  const variants: Record<NonNullable<ButtonProps['variant']>, string> = {
+    primary: 'bg-brand-green text-white shadow-[0_10px_30px_rgba(34,197,94,0.22)] hover:bg-green-400',
+    secondary: 'border border-white/14 bg-white/[0.06] text-white hover:border-white/25 hover:bg-white/[0.12]',
+    ghost: 'bg-transparent text-white/80 hover:bg-white/[0.06] hover:text-white',
+  };
+
+  return cn(base, variants[variant], className);
+}
+
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', ...props }, ref) => {
-    const base =
-      'inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
-    const variants: Record<string, string> = {
-      primary: 'bg-brand-green text-white hover:bg-green-400',
-      secondary: 'bg-white/10 text-white hover:bg-white/20',
-      ghost: 'bg-transparent text-white/80 hover:text-white',
-    };
-
     return (
       <button
         ref={ref}
-        className={cn(base, variants[variant], className)}
+        className={buttonClasses(variant, className)}
         {...props}
       />
     );

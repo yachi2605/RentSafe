@@ -68,7 +68,7 @@ const MATCH_GUIDE = [
 ];
 
 function selectClasses() {
-  return 'h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white focus:border-brand-green focus:outline-none';
+  return 'h-11 w-full rounded-2xl border border-white/10 bg-white/5 px-3 text-sm text-white focus:border-brand-green focus:outline-none';
 }
 
 function activeFilterCount(filters: MatchFilterFormState) {
@@ -213,7 +213,7 @@ export default function MatchPage() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
             <Link
               href="/match/profile"
               onClick={() => trackEvent('match_page_cta_clicked', { target: '/match/profile' })}
@@ -236,7 +236,7 @@ export default function MatchPage() {
               href="/match/my-matches"
               onClick={() => trackEvent('match_page_cta_clicked', { target: '/match/my-matches' })}
             >
-              <Button variant="ghost" className="w-full sm:w-auto">My matches</Button>
+              <Button variant="secondary" className="w-full sm:w-auto">My matches</Button>
             </Link>
           </div>
         </div>
@@ -266,147 +266,147 @@ export default function MatchPage() {
         </div>
       </section>
 
-      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid gap-4 xl:grid-cols-[1.18fr_0.82fr]">
         <Card className="space-y-6 border-white/10 bg-white/[0.04]">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h2 className="text-xl font-semibold">Campus filters</h2>
-            <p className="mt-1 text-sm text-white/55">
-              Amenity filters apply to actual space features and to the apartment needs listed by seekers.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/70">
-              {appliedFilterCount} filter{appliedFilterCount === 1 ? '' : 's'} active
-            </span>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                setFilters(INITIAL_FILTERS);
-                trackEvent('match_filters_reset');
-              }}
-              disabled={appliedFilterCount === 0}
-            >
-              Reset
-            </Button>
-          </div>
-        </div>
-
-        {!profileLoading && savedProfile && (
-          <div className="rounded-2xl border border-sky-400/20 bg-sky-400/5 p-4">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-300/80">
-                  Saved profile defaults
-                </p>
-                <p className="font-medium text-white">
-                  {savedProfile.full_name || 'Your renter profile'}
-                  {savedCampusLabel ? ` · ${savedCampusLabel}` : ''}
-                </p>
-                <p className="text-sm text-white/60">
-                  {hasSavedPreferences
-                    ? `${savedPreferenceCount} saved preference signal${savedPreferenceCount === 1 ? '' : 's'} ready to reuse in search.`
-                    : 'Add housing defaults in your profile, then apply them here in one click.'}
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  href="/match/profile"
-                  onClick={() => trackEvent('match_page_cta_clicked', { target: '/match/profile', source: 'saved_defaults' })}
-                >
-                  <Button variant="secondary">Open profile</Button>
-                </Link>
-                <Button onClick={applySavedPreferences} disabled={!hasSavedPreferences}>
-                  Use saved preferences
-                </Button>
-              </div>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">Campus filters</h2>
+              <p className="mt-1 text-sm text-white/55">
+                Amenity filters apply to actual space features and to the apartment needs listed by seekers.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="inline-flex min-h-11 items-center rounded-full border border-white/15 bg-white/5 px-4 text-sm font-medium whitespace-nowrap text-white/70">
+                {appliedFilterCount} filter{appliedFilterCount === 1 ? '' : 's'} active
+              </span>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setFilters(INITIAL_FILTERS);
+                  trackEvent('match_filters_reset');
+                }}
+                disabled={appliedFilterCount === 0}
+              >
+                Reset filters
+              </Button>
             </div>
           </div>
-        )}
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
-              City
-            </label>
-            <Input
-              placeholder="Chicago"
-              value={filters.city}
-              onChange={(event) => updateFilter('city', event.target.value)}
-            />
+          {!profileLoading && savedProfile && (
+            <div className="rounded-2xl border border-sky-400/20 bg-sky-400/5 p-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-300/80">
+                    Saved profile defaults
+                  </p>
+                  <p className="font-medium text-white">
+                    {savedProfile.full_name || 'Your renter profile'}
+                    {savedCampusLabel ? ` · ${savedCampusLabel}` : ''}
+                  </p>
+                  <p className="text-sm text-white/60">
+                    {hasSavedPreferences
+                      ? `${savedPreferenceCount} saved preference signal${savedPreferenceCount === 1 ? '' : 's'} ready to reuse in search.`
+                      : 'Add housing defaults in your profile, then apply them here in one click.'}
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Link
+                    href="/match/profile"
+                    onClick={() => trackEvent('match_page_cta_clicked', { target: '/match/profile', source: 'saved_defaults' })}
+                  >
+                    <Button variant="secondary" className="w-full sm:w-auto">Open profile</Button>
+                  </Link>
+                  <Button onClick={applySavedPreferences} disabled={!hasSavedPreferences} className="w-full sm:w-auto">
+                    Use saved preferences
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
+                City
+              </label>
+              <Input
+                placeholder="Chicago"
+                value={filters.city}
+                onChange={(event) => updateFilter('city', event.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
+                State
+              </label>
+              <select
+                value={filters.state}
+                onChange={(event) => updateFilter('state', event.target.value)}
+                className={selectClasses()}
+              >
+                <option value="">Any state</option>
+                {US_STATES.map((state) => (
+                  <option key={state} value={state} className="bg-brand-navy text-white">
+                    {state}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
+                Monthly budget target
+              </label>
+              <Input
+                type="number"
+                min="0"
+                step="50"
+                placeholder="1200"
+                value={filters.budget}
+                onChange={(event) => updateFilter('budget', event.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
+                Move in by
+              </label>
+              <Input
+                type="date"
+                value={filters.move_in_by}
+                onChange={(event) => updateFilter('move_in_by', event.target.value)}
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
-              State
-            </label>
-            <select
-              value={filters.state}
-              onChange={(event) => updateFilter('state', event.target.value)}
-              className={selectClasses()}
-            >
-              <option value="">Any state</option>
-              {US_STATES.map((state) => (
-                <option key={state} value={state} className="bg-brand-navy text-white">
-                  {state}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
+              Apartment must-haves
+            </p>
+            <div className="flex flex-wrap gap-3">
+              {AMENITY_FILTERS.map((filter) => {
+                const active = filters[filter.key];
+                return (
+                  <button
+                    key={filter.key}
+                    type="button"
+                    onClick={() => toggleAmenity(filter.key)}
+                    className={`inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-full border px-4 text-sm font-medium transition ${
+                      active
+                        ? 'border-brand-green/50 bg-brand-green/15 text-brand-green'
+                        : 'border-white/15 bg-white/[0.03] text-white/70 hover:border-white/25 hover:bg-white/[0.06]'
+                    }`}
+                  >
+                    <span>{filter.icon}</span>
+                    {filter.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
-              Monthly budget target
-            </label>
-            <Input
-              type="number"
-              min="0"
-              step="50"
-              placeholder="1200"
-              value={filters.budget}
-              onChange={(event) => updateFilter('budget', event.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
-              Move in by
-            </label>
-            <Input
-              type="date"
-              value={filters.move_in_by}
-              onChange={(event) => updateFilter('move_in_by', event.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
-            Apartment must-haves
-          </p>
-          <div className="flex flex-wrap gap-3">
-            {AMENITY_FILTERS.map((filter) => {
-              const active = filters[filter.key];
-              return (
-                <button
-                  key={filter.key}
-                  type="button"
-                  onClick={() => toggleAmenity(filter.key)}
-                  className={`rounded-full border px-4 py-2 text-sm transition ${
-                    active
-                      ? 'border-brand-green/50 bg-brand-green/15 text-brand-green'
-                      : 'border-white/15 bg-white/[0.03] text-white/70 hover:border-white/25 hover:bg-white/[0.06]'
-                  }`}
-                >
-                  <span className="mr-2">{filter.icon}</span>
-                  {filter.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
         </Card>
 
         <Card className="space-y-5 border-white/10 bg-brand-navy/80">
@@ -454,7 +454,7 @@ export default function MatchPage() {
                 People with a room, lease opening, or sublet that matches the current filters.
               </p>
             </div>
-            <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/70">
+            <span className="inline-flex min-h-8 items-center rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs whitespace-nowrap text-white/70">
               {spaces.length} result{spaces.length === 1 ? '' : 's'}
             </span>
           </div>
@@ -490,7 +490,7 @@ export default function MatchPage() {
                 People whose housing needs line up with the same campus filters and budget target.
               </p>
             </div>
-            <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/70">
+            <span className="inline-flex min-h-8 items-center rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs whitespace-nowrap text-white/70">
               {seekers.length} result{seekers.length === 1 ? '' : 's'}
             </span>
           </div>

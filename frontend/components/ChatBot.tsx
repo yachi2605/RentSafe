@@ -130,7 +130,7 @@ export default function ChatBot() {
           {coverage.coverage_topics.map((topic) => (
             <span
               key={topic}
-              className="rounded-full border border-white/15 bg-white/[0.04] px-3 py-1 text-xs text-white/70"
+              className="inline-flex min-h-8 items-center rounded-full border border-white/15 bg-white/[0.04] px-3 py-1 text-xs whitespace-nowrap text-white/70"
             >
               {topic}
             </span>

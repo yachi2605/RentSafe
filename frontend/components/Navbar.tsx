@@ -76,7 +76,7 @@ export default function Navbar() {
               key={link.href}
               href={link.href}
               onClick={() => trackEvent('navbar_link_clicked', { target: link.href })}
-              className={isActive(link.href) ? 'text-brand-green' : 'text-white/75 hover:text-white'}
+              className={`whitespace-nowrap transition-colors ${isActive(link.href) ? 'text-brand-green' : 'text-white/75 hover:text-white'}`}
             >
               {link.label}
             </Link>
@@ -86,7 +86,7 @@ export default function Navbar() {
         <div className="flex items-center gap-2 sm:gap-3">
           {userEmail ? (
             <div className="hidden items-center gap-3 md:flex">
-              <span className="hidden text-xs text-white/70 xl:inline">{userEmail}</span>
+              <span className="hidden max-w-[220px] truncate text-xs text-white/70 xl:inline">{userEmail}</span>
               <Link href="/lease-analyzer" onClick={() => trackEvent('navbar_primary_cta_clicked', { target: '/lease-analyzer' })}>
                 <Button>Analyze a lease</Button>
               </Link>

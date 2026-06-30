@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Match } from '@/types';
 import MatchBadge from '@/components/MatchBadge';
 import { Card } from '@/components/ui/card';
+import { buttonClasses } from '@/components/ui/button';
 
 interface MatchCardProps {
   match: Match;
@@ -28,7 +29,7 @@ export default function MatchCard({ match }: MatchCardProps) {
           <MatchBadge score={match.score} />
           <Link
             href={`/match/chat/${match.id}`}
-            className="rounded-full border border-brand-green/40 bg-brand-green/10 px-3 py-1 text-xs text-brand-green"
+            className={buttonClasses('secondary', 'min-h-9 border-brand-green/35 bg-brand-green/10 px-4 text-brand-green hover:bg-brand-green/18')}
           >
             💬 Chat
           </Link>
