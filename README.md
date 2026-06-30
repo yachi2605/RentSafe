@@ -168,21 +168,6 @@ npm run build
 
 For a fuller walkthrough, use [DEMO.md](DEMO.md).
 
-## GitHub / Portfolio Review Strategy
-
-This repository is intentionally the **source-of-truth project repo**, not a permanently open public demo.
-
-Reason: the AI features use paid API credits. If a public live URL is shared broadly, strangers can consume real backend and OpenAI usage.
-
-### Recommended way to present it
-
-- keep the GitHub repo clean and public
-- use this README to explain scope and architecture
-- add screenshots or a short screen-recorded walkthrough in the repo or project post
-- only share a live deployment privately, temporarily, or with demo accounts if you are comfortable with the spend
-
-If you want a truly public live showcase later, the right next step is a **mock/demo mode** or a **read-only hosted demo** that does not hit your paid AI stack.
-
 ## Deployment
 
 Reference deployment notes live in [DEPLOY.md](DEPLOY.md). The project is set up for:
