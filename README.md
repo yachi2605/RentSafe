@@ -13,6 +13,30 @@ The goal is not to be a legal service or a listing marketplace. The goal is to g
 
 - Live app: [https://rent-safe-rose.vercel.app/login](https://rent-safe-rose.vercel.app/login)
 
+## Architecture Diagram
+
+![RentPilot architecture diagram](artifacts/Diag.png)
+
+## Product Preview
+
+Use the live app for the full flow, and use these screenshots for a quick visual overview.
+
+### Dashboard
+
+![RentPilot dashboard](artifacts/Dashboard.png)
+
+### Roommate Matching
+
+![RentPilot match feed](artifacts/Match.png)
+
+### Tenant Rights Bot
+
+![RentPilot tenant rights bot](artifacts/Tenantright_bot.png)
+
+### Saved History
+
+![RentPilot lease history](artifacts/History.png)
+
 ## What It Does
 
 ### Current launch scope
