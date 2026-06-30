@@ -9,6 +9,10 @@ RentPilot is a renter-safety platform for students and early-career renters. It 
 
 The goal is not to be a legal service or a listing marketplace. The goal is to give renters better decision support before they sign, pay, or message.
 
+## Try It
+
+- Live app: [https://rent-safe-rose.vercel.app/login](https://rent-safe-rose.vercel.app/login)
+
 ## What It Does
 
 ### Current launch scope
@@ -32,18 +36,53 @@ Outside that scope, the bot refuses instead of pretending to know the law.
 ## Architecture
 
 ```text
-Next.js frontend
-  -> calls FastAPI backend with Supabase-authenticated requests
-FastAPI backend
-  -> verifies user session
-  -> applies quotas + cache + safety checks
-  -> calls OpenAI only when needed
-  -> reads/writes Supabase Postgres
-Supabase
-  -> Auth
-  -> Postgres
-  -> RLS-backed user data
+User
+  -> Next.js frontend on Vercel
+  -> Supabase Auth for login/session
+  -> FastAPI backend on Render with bearer token
+  -> Backend verifies user + applies quotas/cache/safety rails
+  -> Backend either:
+       - reads/writes Supabase Postgres
+       - calls OpenAI for structured analysis/generation
+       - combines both for grounded rights answers
+  -> Frontend renders saved history, match results, and AI output
 ```
+
+### How the system works
+
+- **Frontend**: Next.js handles the UI, protected routes, form flows, and browser-side session handling through Supabase.
+- **Authentication**: users log in with Supabase Auth. The frontend sends the session token to the FastAPI backend on protected requests.
+- **Backend API**: FastAPI is the trusted server layer. It validates requests, enforces daily usage quotas, checks cache hits, applies safety filters, and decides whether a request needs OpenAI or only database reads/writes.
+- **Database**: Supabase Postgres stores profiles, posts, matches, reports, lease/scam history, cached responses, quotas, and curated tenant-rights sources.
+- **LLM layer**: OpenAI is used for lease analysis, scam detection, lease Q&A, negotiation drafting, move-out checklists, and source-grounded tenant-rights answers. Structured outputs are used where possible so the frontend receives predictable JSON.
+
+### Feature pipelines
+
+- **Lease Analyzer**
+  - User uploads PDF in the frontend
+  - Backend extracts PDF text with PyMuPDF
+  - PII is scrubbed before LLM use
+  - OpenAI returns structured lease summary, red flags, tips, and score
+  - Result is saved to Supabase and shown in the UI
+
+- **Scam Detector**
+  - User submits listing text
+  - Backend requires login, checks quota/cache, and guards against prompt injection
+  - OpenAI returns a structured scam score, verdict, red flags, hidden fees, and tips
+  - Result is stored in history and rendered in the dashboard/history views
+
+- **Tenant Rights Bot**
+  - User submits a question plus state
+  - Backend checks whether the state is in supported launch coverage
+  - Matching legal sources are selected from the curated rights registry in Supabase
+  - Source summaries are passed to OpenAI as context
+  - Backend returns a grounded answer with source links, or a refusal if coverage is missing
+
+- **Roommate Matching**
+  - Users create seeker or space posts
+  - Backend normalizes location fields, redacts contact details, and saves posts
+  - Matching logic runs in Python on renter preferences, budget, move-in timing, and home features
+  - The API returns compatibility scores plus factor-by-factor explanations
 
 ### Key engineering decisions
 
@@ -51,6 +90,23 @@ Supabase
 - **Explainable matching**: compatibility is computed from renter and apartment signals, then returned with factor-by-factor reasoning.
 - **Safer failure modes**: the rights bot refuses outside supported coverage; backend errors return CORS-safe JSON; public text is moderated before reuse.
 - **Lean launch runtime**: the default backend requirements only include packages needed to run the launch product.
+
+### Diagram-friendly summary
+
+If you want to draw this as a graph, use this shape:
+
+```text
+Browser
+  -> Next.js frontend
+  -> Supabase Auth
+  -> FastAPI backend
+FastAPI backend
+  -> Usage quota + cache + moderation/safety layer
+  -> OpenAI API
+  -> Supabase Postgres
+Supabase Postgres
+  -> profiles / posts / matches / reports / history / rights_sources / llm_cache
+```
 
 ## Tech Stack
 
