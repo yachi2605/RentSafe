@@ -7,6 +7,23 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { trackEvent } from '@/lib/analytics';
 import { Button } from '@/components/ui/button';
 
+function LogoMark() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path
+        d="M13 2L3.5 6.5V13.5C3.5 18.75 7.75 23.25 13 24.5C18.25 23.25 22.5 18.75 22.5 13.5V6.5L13 2Z"
+        fill="rgba(61,217,151,0.15)"
+        stroke="rgba(61,217,151,0.6)"
+        strokeWidth="1.25"
+        strokeLinejoin="round"
+      />
+      <circle cx="13" cy="12" r="2.5" stroke="rgba(61,217,151,0.9)" strokeWidth="1.25" fill="none" />
+      <line x1="13" y1="14.5" x2="13" y2="18" stroke="rgba(61,217,151,0.9)" strokeWidth="1.25" strokeLinecap="round" />
+      <line x1="11.5" y1="16.5" x2="14.5" y2="16.5" stroke="rgba(61,217,151,0.9)" strokeWidth="1.25" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 const NAV_LINKS = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/match', label: 'Match' },
@@ -66,7 +83,8 @@ export default function Navbar() {
   return (
     <nav className="sticky top-0 z-50 border-b border-white/10 bg-brand-navy/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
-        <Link href="/" className="font-sora text-xl font-semibold text-white">
+        <Link href="/" className="flex items-center gap-2.5 font-sora text-xl font-semibold text-white">
+          <LogoMark />
           RentPilot
         </Link>
 

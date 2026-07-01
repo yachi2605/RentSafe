@@ -18,32 +18,47 @@ import {
   truncateText,
   verdictTone,
 } from '@/lib/history';
+import { FileText, ShieldAlert, Scale, Users, Home, type LucideIcon } from 'lucide-react';
+import { SkeletonActivityRow, SkeletonMatchCard } from '@/components/ui/skeleton';
 
-const FEATURES = [
+interface Feature {
+  href: string;
+  Icon: LucideIcon;
+  iconColor: string;
+  title: string;
+  text: string;
+  action: string;
+}
+
+const FEATURES: Feature[] = [
   {
     href: '/lease-analyzer',
-    icon: '📄',
+    Icon: FileText,
+    iconColor: 'text-brand-green',
     title: 'Lease Analyzer',
     text: 'Upload a lease PDF and get red flags, negotiation tips, and a tenant-friendliness score.',
     action: 'Analyze a lease',
   },
   {
     href: '/scam-checker',
-    icon: '🕵️',
+    Icon: ShieldAlert,
+    iconColor: 'text-amber-300',
     title: 'Scam Detector',
     text: 'Paste any listing and get a scam score with specific red flags and hidden fees.',
     action: 'Check a listing',
   },
   {
     href: '/tenant-rights',
-    icon: '⚖️',
+    Icon: Scale,
+    iconColor: 'text-sky-300',
     title: 'Tenant Rights',
     text: 'Ask anything about your rights as a renter — answers specific to your state.',
     action: 'Ask a question',
   },
   {
     href: '/match',
-    icon: '🤝',
+    Icon: Users,
+    iconColor: 'text-violet-300',
     title: 'Roommate Match',
     text: 'Post a space or find one. See exactly why each match fits your lifestyle.',
     action: 'Explore matches',
@@ -132,11 +147,8 @@ export default function DashboardPage() {
       <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <Card className="space-y-5 border-brand-green/15 bg-[radial-gradient(circle_at_top_left,_rgba(61,217,151,0.16),_transparent_36%),linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-6 sm:p-8">
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.26em] text-brand-green/70">
-              Dashboard
-            </p>
             <h1 className="font-sora text-3xl font-bold sm:text-4xl">
-              {firstName ? `Hey ${firstName} 👋` : 'Welcome back 👋'}
+              {firstName ? `Hey, ${firstName}.` : 'Welcome back.'}
             </h1>
             <p className="max-w-2xl text-sm leading-relaxed text-white/65 sm:text-base">
               Pick up the highest-value renter task first: review a lease, vet a listing, or post what you need.
@@ -158,29 +170,52 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <Card className="grid gap-4 border-white/10 bg-brand-navy/80 p-5 sm:grid-cols-3 xl:grid-cols-1">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/45">
-              Active matches
-            </p>
-            <p className="mt-3 text-3xl font-bold text-white">{matches.length}</p>
-            <p className="mt-1 text-sm text-white/55">Potential roommate fits currently saved for you.</p>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/45">
-              Saved leases
-            </p>
-            <p className="mt-3 text-3xl font-bold text-white">{recentLeases.length}</p>
-            <p className="mt-1 text-sm text-white/55">Recent lease analyses ready to reopen.</p>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/45">
-              Scam checks
-            </p>
-            <p className="mt-3 text-3xl font-bold text-white">{recentScams.length}</p>
-            <p className="mt-1 text-sm text-white/55">Listing checks you can revisit before paying anything.</p>
-          </div>
-        </Card>
+        {/* Stats card — only show when there's actual data; otherwise show onboarding steps */}
+        {!loading && (matches.length > 0 || recentLeases.length > 0 || recentScams.length > 0) ? (
+          <Card className="grid gap-4 border-white/10 bg-brand-navy/80 p-5 sm:grid-cols-3 xl:grid-cols-1">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/45">Active matches</p>
+              <p className="mt-3 text-3xl font-bold text-white">{matches.length}</p>
+              <p className="mt-1 text-sm text-white/55">Potential roommate fits currently saved for you.</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/45">Saved leases</p>
+              <p className="mt-3 text-3xl font-bold text-white">{recentLeases.length}</p>
+              <p className="mt-1 text-sm text-white/55">Recent lease analyses ready to reopen.</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/45">Scam checks</p>
+              <p className="mt-3 text-3xl font-bold text-white">{recentScams.length}</p>
+              <p className="mt-1 text-sm text-white/55">Listing checks you can revisit before paying anything.</p>
+            </div>
+          </Card>
+        ) : (
+          <Card className="flex flex-col justify-center gap-4 border-brand-green/10 bg-brand-navy/80 p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">Get started</p>
+            <p className="text-sm font-semibold text-white/80">Three things to do first</p>
+            <div className="space-y-3">
+              {[
+                { href: '/lease-analyzer', Icon: FileText, color: 'text-brand-green', label: 'Analyze your lease', desc: 'Upload a PDF and get red flags in minutes.' },
+                { href: '/scam-checker', Icon: ShieldAlert, color: 'text-amber-300', label: 'Check a listing', desc: 'Paste any listing to get a scam risk score.' },
+                { href: '/match', Icon: Users, color: 'text-violet-300', label: 'Find a roommate', desc: 'Browse spaces and seekers near your campus.' },
+              ].map(({ href, Icon, color, label, desc }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className="flex items-start gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-3 transition hover:border-white/15 hover:bg-white/[0.06]"
+                >
+                  <span className={`mt-0.5 rounded-lg border border-white/10 bg-white/[0.06] p-1.5 ${color}`}>
+                    <Icon size={14} strokeWidth={2} />
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium text-white/85">{label}</p>
+                    <p className="text-xs text-white/40">{desc}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </Card>
+        )}
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2">
@@ -193,7 +228,9 @@ export default function DashboardPage() {
                        hover:-translate-y-0.5 hover:border-brand-green/40 hover:bg-white/[0.07]"
           >
             <div className="flex items-start gap-4">
-              <span className="text-3xl">{feature.icon}</span>
+              <span className={`mt-0.5 rounded-xl border border-white/10 bg-white/[0.06] p-2.5 ${feature.iconColor}`}>
+                <feature.Icon size={20} strokeWidth={1.75} />
+              </span>
               <div className="space-y-1.5">
                 <h2 className="text-lg font-semibold">{feature.title}</h2>
                 <p className="text-sm leading-relaxed text-white/60">{feature.text}</p>
@@ -244,7 +281,10 @@ export default function DashboardPage() {
             </div>
 
             {loading && recentLeases.length === 0 && (
-              <p className="text-sm text-white/50">Loading saved leases...</p>
+              <div className="space-y-3">
+                <SkeletonActivityRow />
+                <SkeletonActivityRow />
+              </div>
             )}
 
             {!loading && recentLeases.length === 0 && (
@@ -301,7 +341,10 @@ export default function DashboardPage() {
             </div>
 
             {loading && recentScams.length === 0 && (
-              <p className="text-sm text-white/50">Loading saved scam checks...</p>
+              <div className="space-y-3">
+                <SkeletonActivityRow />
+                <SkeletonActivityRow />
+              </div>
             )}
 
             {!loading && recentScams.length === 0 && (
@@ -360,7 +403,12 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {loading && <p className="text-sm text-white/50">Loading matches...</p>}
+        {loading && (
+          <div className="grid gap-4">
+            <SkeletonMatchCard />
+            <SkeletonMatchCard />
+          </div>
+        )}
 
         {matchError && (
           <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-5 text-sm text-amber-200/90">
@@ -373,7 +421,7 @@ export default function DashboardPage() {
 
         {!loading && !matchError && matches.length === 0 && (
           <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.03] p-10 text-center">
-            <p className="text-3xl">🏠</p>
+            <Home size={32} className="mx-auto text-white/20" strokeWidth={1.5} />
             <p className="mt-3 font-medium text-white/80">No matches yet — let&apos;s change that.</p>
             <p className="mx-auto mt-1 max-w-sm text-sm text-white/50">
               Tell us what you have or what you need, and we&apos;ll find renters whose lifestyle

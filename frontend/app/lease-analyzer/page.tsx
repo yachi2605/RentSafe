@@ -13,6 +13,7 @@ import { LeaseAnalysisResult, ProactiveQAItem, MoveOutItem } from '@/types';
 import { trackEvent } from '@/lib/analytics';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MessageSquare, ClipboardList, Search } from 'lucide-react';
 
 interface QAMessage {
   role: 'user' | 'bot';
@@ -165,7 +166,7 @@ export default function LeaseAnalyzerPage() {
           {/* ── Proactive Q&A ── */}
           <section className="space-y-3 rounded-2xl border border-brand-green/20 bg-brand-green/5 p-5 sm:p-6">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-lg">🔍</span>
+              <Search size={16} className="text-brand-green" strokeWidth={2} />
               <h2 className="font-semibold">Key things we found in your lease</h2>
               {proactiveLoading && (
                 <span className="text-sm text-white/40">Analyzing…</span>
@@ -205,23 +206,23 @@ export default function LeaseAnalyzerPage() {
               <div className="flex flex-col gap-2 sm:flex-row">
                 <button
                   onClick={() => setTab('qa')}
-                  className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+                  className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${
                     tab === 'qa'
                       ? 'bg-brand-green text-black'
                       : 'border border-white/10 text-white/60 hover:text-white'
                   }`}
                 >
-                  💬 Ask your lease
+                  <MessageSquare size={14} strokeWidth={2} /> Ask your lease
                 </button>
                 <button
                   onClick={() => { setTab('checklist'); if (!checklist.length) handleChecklist(); }}
-                  className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+                  className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${
                     tab === 'checklist'
                       ? 'bg-brand-green text-black'
                       : 'border border-white/10 text-white/60 hover:text-white'
                   }`}
                 >
-                  ✅ Move-out protection
+                  <ClipboardList size={14} strokeWidth={2} /> Move-out protection
                 </button>
               </div>
 

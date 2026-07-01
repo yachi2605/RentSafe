@@ -11,6 +11,8 @@ import SeekerPostCard from '@/components/SeekerPostCard';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Home, GraduationCap } from 'lucide-react';
+import { SkeletonCard } from '@/components/ui/skeleton';
 import {
   countProfilePreferenceSignals,
   formatCampusLabel,
@@ -440,9 +442,18 @@ export default function MatchPage() {
       )}
 
       {loading && (
-        <p className="text-sm text-white/45">
-          Refreshing spaces and seekers for your current campus filters...
-        </p>
+        <div className="grid gap-6 xl:grid-cols-2">
+          <div className="space-y-3">
+            <SkeletonCard className="h-32" />
+            <SkeletonCard className="h-32" />
+            <SkeletonCard className="h-32" />
+          </div>
+          <div className="space-y-3">
+            <SkeletonCard className="h-32" />
+            <SkeletonCard className="h-32" />
+            <SkeletonCard className="h-32" />
+          </div>
+        </div>
       )}
 
       <div className="grid gap-6 xl:grid-cols-2">
@@ -461,7 +472,7 @@ export default function MatchPage() {
 
           {!loading && spaces.length === 0 && (
             <Card className="border-dashed bg-white/[0.03] p-8 text-center">
-              <p className="text-3xl">🏠</p>
+              <Home size={28} className="mx-auto text-white/20" strokeWidth={1.5} />
               <p className="mt-3 font-medium text-white/85">No spaces match these filters.</p>
               <p className="mx-auto mt-2 max-w-sm text-sm text-white/55">
                 Widen your budget, relax an amenity requirement, or clear the move-in deadline to
@@ -497,7 +508,7 @@ export default function MatchPage() {
 
           {!loading && seekers.length === 0 && (
             <Card className="border-dashed bg-white/[0.03] p-8 text-center">
-              <p className="text-3xl">🎓</p>
+              <GraduationCap size={28} className="mx-auto text-white/20" strokeWidth={1.5} />
               <p className="mt-3 font-medium text-white/85">No seekers match these filters.</p>
               <p className="mx-auto mt-2 max-w-sm text-sm text-white/55">
                 Try a broader city or budget target, or turn off one of the apartment must-haves to
