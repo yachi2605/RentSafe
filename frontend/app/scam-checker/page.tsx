@@ -9,6 +9,9 @@ import ScamScoreCard from '@/components/ScamScoreCard';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ShieldAlert, Loader2 } from 'lucide-react';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { saveRecentScam } from '@/lib/recent-results';
+import SaveResultsPrompt from '@/components/SaveResultsPrompt';
 
 const EXAMPLE_CHIPS = [
   { label: 'Craigslist ad', text: 'Spacious 2BR near downtown, $750/mo all utilities included. Owner traveling abroad. Send $1,500 deposit via Zelle to hold unit. No showings until deposit received.' },
@@ -21,20 +24,28 @@ export default function ScamCheckerPage() {
   const [result, setResult] = useState<ScamCheckResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAnonymous, setIsAnonymous] = useState(false);
 
   const handleCheck = async () => {
     if (!listingText.trim()) return;
     setLoading(true);
     setResult(null);
     setError(null);
+
+    const supabase = createClientComponentClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    setIsAnonymous(!session);
+
     try {
       trackEvent('scam_check_started', { input_chars: listingText.trim().length });
       const response = await checkScam(listingText);
       setResult(response);
+      saveRecentScam(listingText, response as unknown as Record<string, unknown>);
       trackEvent('scam_check_completed', {
         score: response.scam_score,
         verdict: response.verdict,
         red_flag_count: response.red_flags?.length || 0,
+        authenticated: !!session,
       });
     } catch (err) {
       trackEvent('scam_check_failed');
@@ -132,6 +143,7 @@ export default function ScamCheckerPage() {
       {result && (
         <>
           <ScamScoreCard result={result} />
+          {isAnonymous && <SaveResultsPrompt context="this scam check" />}
           {/* Safety notice after results — contextual, not preachy */}
           <SafetyNotice title="Before you respond to this listing">
             Never wire money, send a deposit, or move the conversation off-platform before you verify the place,

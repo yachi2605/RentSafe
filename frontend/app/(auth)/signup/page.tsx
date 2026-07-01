@@ -11,16 +11,16 @@ import { Input } from '@/components/ui/input';
 
 const SIGNUP_BENEFITS = [
   {
-    title: 'Save your work',
-    text: 'Keep lease analyses, scam checks, and match activity tied to your account instead of losing them between sessions.',
+    title: 'Save results permanently',
+    text: 'Lease analyses and scam checks you run stay in your account forever — not just for 7 days on one device.',
   },
   {
-    title: 'Protect AI usage',
-    text: 'Login-gated AI features let RentPilot apply quotas, caching, and safer usage controls behind the scenes.',
+    title: 'Access from anywhere',
+    text: 'Pick up past analyses on your phone, laptop, or library computer. No re-uploading, no re-running.',
   },
   {
-    title: 'Match more safely',
-    text: 'Roommate chat stays on-platform first, with contact-detail redaction and reporting rails already in place.',
+    title: 'Roommate matching',
+    text: 'Post a space or a seeker profile, browse listings, and message matches — all on-platform, contact details redacted until you both agree.',
   },
 ];
 
@@ -93,9 +93,9 @@ export default function SignupPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand-green/70">
             Create account
           </p>
-          <h1 className="font-sora text-3xl font-bold sm:text-4xl">Start using RentPilot</h1>
+          <h1 className="font-sora text-3xl font-bold sm:text-4xl">Save your results free</h1>
           <p className="text-sm leading-relaxed text-white/65">
-            Create an account to save analyses, run protected AI tools, and message matches on-platform first.
+            The tools are free and work without an account. Sign up to save results permanently and unlock roommate matching.
           </p>
         </div>
 

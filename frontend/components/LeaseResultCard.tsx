@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { negotiateClause } from '@/lib/api';
+import { Mail, ClipboardCopy, Check, RefreshCw, X } from 'lucide-react';
 
 interface LeaseResultCardProps {
   result: LeaseAnalysisResult;
@@ -51,7 +52,7 @@ function NegotiateModal({
             <h3 className="font-semibold">Negotiate: {flag.clause}</h3>
             <p className="text-sm text-white/50">Generate a professional email to send your landlord</p>
           </div>
-          <button onClick={onClose} className="text-white/40 hover:text-white/80">✕</button>
+          <button onClick={onClose} className="rounded-lg p-1 text-white/40 hover:text-white/70 transition"><X size={16} /></button>
         </div>
 
         {!email && (
@@ -62,8 +63,8 @@ function NegotiateModal({
               <p className="mt-2">{flag.explanation}</p>
             </div>
             {error && <p className="text-sm text-red-400">{error}</p>}
-            <Button onClick={generate} disabled={loading} className="w-full">
-              {loading ? 'Drafting email…' : '✉ Draft negotiation email'}
+            <Button onClick={generate} disabled={loading} className="inline-flex w-full items-center gap-2">
+              {loading ? <><RefreshCw size={14} className="animate-spin" /> Drafting email…</> : <><Mail size={14} /> Draft negotiation email</>}
             </Button>
           </>
         )}
@@ -79,11 +80,11 @@ function NegotiateModal({
               <pre className="whitespace-pre-wrap font-sans leading-relaxed text-white/80">{email.body}</pre>
             </div>
             <div className="flex gap-2">
-              <Button onClick={copy} className="flex-1">
-                {copied ? '✓ Copied!' : '📋 Copy to clipboard'}
+              <Button onClick={copy} className="inline-flex flex-1 items-center justify-center gap-2">
+                {copied ? <><Check size={14} /> Copied!</> : <><ClipboardCopy size={14} /> Copy to clipboard</>}
               </Button>
-              <Button variant="secondary" onClick={() => setEmail(null)}>
-                Regenerate
+              <Button variant="secondary" onClick={() => setEmail(null)} className="inline-flex items-center gap-2">
+                <RefreshCw size={14} /> Regenerate
               </Button>
             </div>
             <p className="text-center text-xs text-white/30">
@@ -144,9 +145,9 @@ export default function LeaseResultCard({ result }: LeaseResultCardProps) {
                   </div>
                   <button
                     onClick={() => setNegotiatingFlag(flag)}
-                    className="shrink-0 rounded-lg border border-brand-green/30 px-3 py-1 text-xs font-medium text-brand-green hover:bg-brand-green/10 transition"
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-brand-green/30 px-3 py-1 text-xs font-medium text-brand-green hover:bg-brand-green/10 transition"
                   >
-                    ✉ Negotiate
+                    <Mail size={12} strokeWidth={2} /> Negotiate
                   </button>
                 </div>
                 <p className="text-xs italic text-white/50">&ldquo;{flag.text}&rdquo;</p>

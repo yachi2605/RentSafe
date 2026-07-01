@@ -12,15 +12,15 @@ import { Input } from '@/components/ui/input';
 const LOGIN_CONTEXT = [
   {
     title: 'Resume saved analyses',
-    text: 'Open past lease reviews and scam checks without rerunning them.',
+    text: 'Open past lease reviews and scam checks without re-uploading or re-running them.',
   },
   {
     title: 'Continue match conversations',
-    text: 'Pick up your roommate search and keep early conversations on-platform.',
+    text: 'Pick up your roommate search and any on-platform conversations where you left off.',
   },
   {
-    title: 'Use grounded renter tools',
-    text: 'Access rights guidance, protected AI usage, and your personalized dashboard.',
+    title: 'Tools still work without logging in',
+    text: 'Lease Analyzer, Scam Detector, and Tenant Rights are always free — no account required to use them.',
   },
 ];
 
@@ -97,7 +97,7 @@ export default function LoginPage() {
           </p>
           <h1 className="font-sora text-3xl font-bold sm:text-4xl">Welcome back</h1>
           <p className="text-sm leading-relaxed text-white/65">
-            Sign in to reopen your saved work, continue matching, and access protected renter tools.
+            Sign in to reopen your saved analyses, continue matching, and access results from any device.
           </p>
         </div>
 

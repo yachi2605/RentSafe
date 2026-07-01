@@ -16,7 +16,7 @@ from services.openai_service import (
 )
 from services.logging_service import log_event
 from services.pdf_service import extract_text_from_pdf
-from services.usage_service import cache_key, enforce_quota, get_cached, require_user, set_cached
+from services.usage_service import cache_key, enforce_quota, get_cached, optional_user, require_user, set_cached
 
 router = APIRouter()
 logger = logging.getLogger("rentpilot")
@@ -58,9 +58,10 @@ async def analyze_lease_endpoint(
     if not contents:
         raise HTTPException(status_code=400, detail="Empty PDF file")
 
-    auth_user_id = require_user(request)
+    # Anonymous users get full functionality; authenticated users also get DB history.
+    auth_user_id = optional_user(request)
     user_id = user_id or auth_user_id
-    log_event(logger, "lease_analysis_requested", user_id=auth_user_id, file_name=file.filename)
+    log_event(logger, "lease_analysis_requested", user_id=auth_user_id or "anonymous", file_name=file.filename)
 
     extracted = extract_text_from_pdf(contents)
 
@@ -85,24 +86,27 @@ async def analyze_lease_endpoint(
         log_event(
             logger,
             "lease_analysis_cache_hit",
-            user_id=auth_user_id,
+            user_id=auth_user_id or "anonymous",
             file_name=file.filename,
             extracted_chars=len(extracted["full_text"]),
         )
         return cached
 
-    enforce_quota(auth_user_id, "lease")
+    # Only enforce quota for authenticated users — anonymous traffic is bounded by cache + upstream limits.
+    if auth_user_id:
+        enforce_quota(auth_user_id, "lease")
     result = analyze_lease(analyze_text)
     result["extracted_text"] = extracted["full_text"]  # persist so frontend never re-uploads
     set_cached(key, "lease", result)
     log_event(
         logger,
         "lease_analysis_completed",
-        user_id=auth_user_id,
+        user_id=auth_user_id or "anonymous",
         file_name=file.filename,
         extracted_chars=len(extracted["full_text"]),
         red_flag_count=len(result.get("red_flags") or []),
         score=result.get("tenant_friendly_score"),
+        authenticated=auth_user_id is not None,
     )
 
     if user_id:
@@ -174,28 +178,27 @@ async def get_lease_history_detail(request: Request, analysis_id: str):
 @router.post("/proactive-qa", response_model=ProactiveQAResponse)
 async def proactive_qa_endpoint(request: Request, body: ProactiveQARequest):
     """Auto-generate 5 key Q&As from the lease — no user input required."""
-    auth_user_id = require_user(request)
+    auth_user_id = optional_user(request)
     if not body.lease_text.strip():
         raise HTTPException(status_code=422, detail="Lease text is empty.")
 
     key = cache_key("lease_proactive", body.lease_text)
     cached = get_cached(key)
     if cached is not None:
-        log_event(logger, "lease_proactive_qa_cache_hit", user_id=auth_user_id)
+        log_event(logger, "lease_proactive_qa_cache_hit", user_id=auth_user_id or "anonymous")
         return cached
 
-    # Proactive Q&A shares the lease quota — already paid when analyzing
     items = generate_proactive_qa(body.lease_text)
     response = {"items": items}
     set_cached(key, "lease_proactive", response)
-    log_event(logger, "lease_proactive_qa_completed", user_id=auth_user_id, item_count=len(items))
+    log_event(logger, "lease_proactive_qa_completed", user_id=auth_user_id or "anonymous", item_count=len(items))
     return response
 
 
 @router.post("/ask-text", response_model=LeaseAskResponse)
 async def ask_lease_text_endpoint(request: Request, body: LeaseAskTextRequest):
     """Answer a question using already-extracted lease text (no re-upload)."""
-    auth_user_id = require_user(request)
+    auth_user_id = optional_user(request)
     if not body.lease_text.strip():
         raise HTTPException(status_code=422, detail="Lease text is empty.")
     if not body.question.strip():
@@ -204,56 +207,59 @@ async def ask_lease_text_endpoint(request: Request, body: LeaseAskTextRequest):
     key = cache_key("lease_qa", body.lease_text, body.question)
     cached = get_cached(key)
     if cached is not None:
-        log_event(logger, "lease_question_cache_hit", user_id=auth_user_id)
+        log_event(logger, "lease_question_cache_hit", user_id=auth_user_id or "anonymous")
         return cached
 
-    enforce_quota(auth_user_id, "lease_qa")
+    if auth_user_id:
+        enforce_quota(auth_user_id, "lease_qa")
     answer = answer_lease_question(body.lease_text, body.question)
     response = {
         "answer": answer,
         "disclaimer": "AI-generated from your lease document — not legal advice.",
     }
     set_cached(key, "lease_qa", response)
-    log_event(logger, "lease_question_answered", user_id=auth_user_id, answered=bool(answer))
+    log_event(logger, "lease_question_answered", user_id=auth_user_id or "anonymous", answered=bool(answer))
     return response
 
 
 @router.post("/negotiate-clause", response_model=NegotiateClauseResponse)
 async def negotiate_clause_endpoint(request: Request, body: NegotiateClauseRequest):
     """Draft a professional negotiation email for a specific red-flag clause."""
-    auth_user_id = require_user(request)
+    auth_user_id = optional_user(request)
 
     key = cache_key("lease_negotiate", body.clause, body.clause_text)
     cached = get_cached(key)
     if cached is not None:
-        log_event(logger, "lease_negotiation_cache_hit", user_id=auth_user_id, clause=body.clause)
+        log_event(logger, "lease_negotiation_cache_hit", user_id=auth_user_id or "anonymous", clause=body.clause)
         return cached
 
-    enforce_quota(auth_user_id, "lease_qa")  # shared with Q&A quota
+    if auth_user_id:
+        enforce_quota(auth_user_id, "lease_qa")
     result = generate_negotiation_email(body.clause, body.clause_text, body.explanation)
     set_cached(key, "lease_negotiate", result)
-    log_event(logger, "lease_negotiation_generated", user_id=auth_user_id, clause=body.clause)
+    log_event(logger, "lease_negotiation_generated", user_id=auth_user_id or "anonymous", clause=body.clause)
     return result
 
 
 @router.post("/moveout-checklist")
 async def moveout_checklist_endpoint(request: Request, body: ProactiveQARequest):
     """Generate a lease-specific move-out protection checklist."""
-    auth_user_id = require_user(request)
+    auth_user_id = optional_user(request)
     if not body.lease_text.strip():
         raise HTTPException(status_code=422, detail="Lease text is empty.")
 
     key = cache_key("lease_moveout", body.lease_text)
     cached = get_cached(key)
     if cached is not None:
-        log_event(logger, "lease_moveout_checklist_cache_hit", user_id=auth_user_id)
+        log_event(logger, "lease_moveout_checklist_cache_hit", user_id=auth_user_id or "anonymous")
         return cached
 
-    enforce_quota(auth_user_id, "lease_qa")
+    if auth_user_id:
+        enforce_quota(auth_user_id, "lease_qa")
     items = generate_moveout_checklist(body.lease_text)
     response = {"items": items}
     set_cached(key, "lease_moveout", response)
-    log_event(logger, "lease_moveout_checklist_generated", user_id=auth_user_id, item_count=len(items))
+    log_event(logger, "lease_moveout_checklist_generated", user_id=auth_user_id or "anonymous", item_count=len(items))
     return response
 
 
@@ -272,8 +278,7 @@ async def ask_lease_question_endpoint(
     if not question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
 
-    auth_user_id = require_user(request)
-
+    auth_user_id = optional_user(request)
     extracted = extract_text_from_pdf(contents)
 
     if not extracted["full_text"].strip():
@@ -283,14 +288,13 @@ async def ask_lease_question_endpoint(
         )
 
     lease_text = extracted["full_text"]
-
-    # Cache per (lease, question) pair — same question on same lease is free.
     key = cache_key("lease_qa", lease_text, question)
     cached = get_cached(key)
     if cached is not None:
         return cached
 
-    enforce_quota(auth_user_id, "lease_qa")
+    if auth_user_id:
+        enforce_quota(auth_user_id, "lease_qa")
     answer = answer_lease_question(lease_text, question)
     response = {
         "answer": answer,

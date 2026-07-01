@@ -6,7 +6,7 @@ from database import get_supabase
 from models.schemas import ScamCheckHistoryItem, ScamCheckHistoryResponse, ScamCheckRequest, ScamCheckResponse
 from services.logging_service import log_event
 from services.openai_service import check_scam
-from services.usage_service import cache_key, enforce_quota, get_cached, require_user, set_cached
+from services.usage_service import cache_key, enforce_quota, get_cached, optional_user, require_user, set_cached
 
 router = APIRouter()
 logger = logging.getLogger("rentpilot")
@@ -33,47 +33,51 @@ def _normalize_scam_history_row(row: dict[str, Any]) -> dict[str, Any]:
 
 @router.post("/check", response_model=ScamCheckResponse)
 async def scam_check(body: ScamCheckRequest, request: Request):
-    user_id = require_user(request)
-    log_event(logger, "scam_check_requested", user_id=user_id, input_chars=len(body.listing_text))
+    user_id = optional_user(request)
+    log_event(logger, "scam_check_requested", user_id=user_id or "anonymous", input_chars=len(body.listing_text))
 
     # Identical listings are served from cache — no OpenAI cost, no quota use.
     key = cache_key("scam", body.listing_text)
     cached = get_cached(key)
     if cached is not None:
-        log_event(logger, "scam_check_cache_hit", user_id=user_id, input_chars=len(body.listing_text))
+        log_event(logger, "scam_check_cache_hit", user_id=user_id or "anonymous", input_chars=len(body.listing_text))
         return cached
 
-    enforce_quota(user_id, "scam")
+    if user_id:
+        enforce_quota(user_id, "scam")
     result = check_scam(body.listing_text)
     set_cached(key, "scam", result)
     log_event(
         logger,
         "scam_check_completed",
-        user_id=user_id,
+        user_id=user_id or "anonymous",
         input_chars=len(body.listing_text),
         verdict=result.get("verdict"),
         score=result.get("scam_score"),
         red_flag_count=len(result.get("red_flags") or []),
+        authenticated=user_id is not None,
     )
 
-    insert_payload = {
-        "user_id": user_id,
-        "listing_input": body.listing_text,
-        "scam_score": result.get("scam_score"),
-        "red_flags": result.get("red_flags"),
-        "hidden_fees": result.get("hidden_fees"),
-        "verdict": result.get("verdict"),
-        "tips": result.get("tips"),
-    }
-    try:
-        get_supabase().table("scam_checks").insert(insert_payload).execute()
-    except Exception:
+    # Only save to DB for authenticated users.
+    if user_id:
+        insert_payload = {
+            "user_id": user_id,
+            "listing_input": body.listing_text,
+            "scam_score": result.get("scam_score"),
+            "red_flags": result.get("red_flags"),
+            "hidden_fees": result.get("hidden_fees"),
+            "verdict": result.get("verdict"),
+            "tips": result.get("tips"),
+        }
         try:
-            fallback_payload = dict(insert_payload)
-            fallback_payload.pop("tips", None)
-            get_supabase().table("scam_checks").insert(fallback_payload).execute()
+            get_supabase().table("scam_checks").insert(insert_payload).execute()
         except Exception:
-            pass
+            try:
+                fallback_payload = dict(insert_payload)
+                fallback_payload.pop("tips", None)
+                get_supabase().table("scam_checks").insert(fallback_payload).execute()
+            except Exception:
+                pass
 
     return result
 

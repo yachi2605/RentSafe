@@ -14,6 +14,9 @@ import { trackEvent } from '@/lib/analytics';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MessageSquare, ClipboardList, Search } from 'lucide-react';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { saveRecentLease } from '@/lib/recent-results';
+import SaveResultsPrompt from '@/components/SaveResultsPrompt';
 
 interface QAMessage {
   role: 'user' | 'bot';
@@ -27,6 +30,8 @@ export default function LeaseAnalyzerPage() {
   const [leaseText, setLeaseText] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [currentFileName, setCurrentFileName] = useState<string>('');
 
   // Proactive Q&A
   const [proactiveItems, setProactiveItems] = useState<ProactiveQAItem[]>([]);
@@ -57,6 +62,12 @@ export default function LeaseAnalyzerPage() {
     setProactiveItems([]);
     setChecklist([]);
     setError(null);
+    setCurrentFileName(file.name);
+
+    // Detect auth state to decide whether to show the save prompt
+    const supabase = createClientComponentClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    setIsAnonymous(!session);
 
     try {
       trackEvent('lease_analysis_started', { file_type: file.type || 'application/pdf' });
@@ -67,7 +78,11 @@ export default function LeaseAnalyzerPage() {
       trackEvent('lease_analysis_completed', {
         red_flag_count: response.red_flags?.length || 0,
         score: response.tenant_friendly_score,
+        authenticated: !!session,
       });
+
+      // Persist to localStorage for anonymous users (and as a fast local cache for logged-in)
+      saveRecentLease(file.name, response as unknown as Record<string, unknown>);
 
       // Auto-trigger proactive Q&A immediately after analysis
       if (text) {
@@ -162,6 +177,11 @@ export default function LeaseAnalyzerPage() {
       {result && (
         <>
           <LeaseResultCard result={result} />
+
+          {/* Save prompt for anonymous users */}
+          {isAnonymous && (
+            <SaveResultsPrompt context={`your ${currentFileName || 'lease'} analysis`} />
+          )}
 
           {/* ── Proactive Q&A ── */}
           <section className="space-y-3 rounded-2xl border border-brand-green/20 bg-brand-green/5 p-5 sm:p-6">

@@ -24,12 +24,21 @@ function LogoMark() {
   );
 }
 
-const NAV_LINKS = [
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/match', label: 'Match' },
+/** Links shown to anonymous visitors — tools front and center */
+const ANON_NAV_LINKS = [
+  { href: '/lease-analyzer', label: 'Lease Analyzer' },
+  { href: '/scam-checker', label: 'Scam Detector' },
   { href: '/tenant-rights', label: 'Tenant Rights' },
+  { href: '/match', label: 'Match' },
+];
+
+/** Links shown to authenticated users */
+const AUTH_NAV_LINKS = [
+  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/lease-analyzer', label: 'Analyzer' },
+  { href: '/scam-checker', label: 'Scam' },
+  { href: '/match', label: 'Match' },
   { href: '/history/leases', label: 'History' },
-  { href: '/match/profile', label: 'Profile' },
 ];
 
 export default function Navbar() {
@@ -53,7 +62,6 @@ export default function Navbar() {
     };
   }, [supabase]);
 
-  // Close the mobile menu on navigation.
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
@@ -61,24 +69,18 @@ export default function Navbar() {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.refresh();
-    router.push('/login');
+    router.push('/');
   };
 
   const isActive = (href: string) => {
-    if (href === '/history/leases') {
-      return pathname.startsWith('/history');
-    }
-    if (href === '/match/profile') {
-      return pathname === '/match/profile';
-    }
+    if (href === '/history/leases') return pathname.startsWith('/history');
     if (href === '/match') {
-      return pathname === '/match' || (
-        pathname.startsWith('/match/') &&
-        !pathname.startsWith('/match/profile')
-      );
+      return pathname === '/match' || (pathname.startsWith('/match/') && !pathname.startsWith('/match/profile'));
     }
     return pathname === href || pathname.startsWith(`${href}/`);
   };
+
+  const navLinks = userEmail ? AUTH_NAV_LINKS : ANON_NAV_LINKS;
 
   return (
     <nav className="sticky top-0 z-50 border-b border-white/10 bg-brand-navy/95 backdrop-blur">
@@ -88,8 +90,9 @@ export default function Navbar() {
           RentPilot
         </Link>
 
+        {/* Desktop nav */}
         <div className="hidden items-center gap-6 text-sm md:flex">
-          {NAV_LINKS.map((link) => (
+          {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -101,26 +104,28 @@ export default function Navbar() {
           ))}
         </div>
 
+        {/* Desktop CTA */}
         <div className="flex items-center gap-2 sm:gap-3">
           {userEmail ? (
             <div className="hidden items-center gap-3 md:flex">
-              <span className="hidden max-w-[220px] truncate text-xs text-white/70 xl:inline">{userEmail}</span>
-              <Link href="/lease-analyzer" onClick={() => trackEvent('navbar_primary_cta_clicked', { target: '/lease-analyzer' })}>
-                <Button>Analyze a lease</Button>
+              <span className="hidden max-w-[220px] truncate text-xs text-white/50 xl:inline">{userEmail}</span>
+              <Link href="/match/profile">
+                <Button variant="ghost" className="text-sm">Profile</Button>
               </Link>
               <Button variant="secondary" onClick={handleSignOut}>
                 Sign out
               </Button>
             </div>
           ) : (
-            <>
-              <Link href="/login" className="hidden sm:inline-flex">
+            <div className="hidden items-center gap-2 md:flex">
+              <Link href="/login" onClick={() => trackEvent('navbar_login_clicked')}>
                 <Button variant="ghost">Log in</Button>
               </Link>
-              <Link href="/signup" onClick={() => trackEvent('navbar_primary_cta_clicked', { target: '/signup' })}>
-                <Button>Sign up</Button>
+              <Link href="/signup" onClick={() => trackEvent('navbar_signup_clicked')}>
+                {/* Copy reflects the actual value prop: save results, not "access tools" */}
+                <Button>Save results free</Button>
               </Link>
-            </>
+            </div>
           )}
 
           {/* Mobile menu toggle */}
@@ -153,7 +158,7 @@ export default function Navbar() {
       {menuOpen && (
         <div className="border-t border-white/10 px-4 pb-4 md:hidden">
           <div className="flex flex-col gap-1 pt-3 text-sm">
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -167,14 +172,11 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
+
             {userEmail ? (
               <>
-                <Link
-                  href="/lease-analyzer"
-                  onClick={() => trackEvent('navbar_primary_cta_clicked', { target: '/lease-analyzer', surface: 'mobile' })}
-                  className="pt-2"
-                >
-                  <Button className="w-full">Analyze a lease</Button>
+                <Link href="/match/profile" className="rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/5">
+                  Profile
                 </Link>
                 <button
                   type="button"
@@ -193,9 +195,9 @@ export default function Navbar() {
                 <Link
                   href="/signup"
                   className="flex-1"
-                  onClick={() => trackEvent('navbar_primary_cta_clicked', { target: '/signup', surface: 'mobile' })}
+                  onClick={() => trackEvent('navbar_signup_clicked', { surface: 'mobile' })}
                 >
-                  <Button className="w-full">Sign up</Button>
+                  <Button className="w-full">Save free</Button>
                 </Link>
               </div>
             )}

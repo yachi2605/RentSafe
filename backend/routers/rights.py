@@ -5,7 +5,7 @@ from services.logging_service import log_event
 from services.location_service import US_STATES
 from services.rag_service import ask_tenant_rights, get_rights_coverage, select_rights_sources
 from services.rights_registry import RIGHTS_SUPPORTED_STATES
-from services.usage_service import cache_key, enforce_quota, get_cached, require_user, set_cached
+from services.usage_service import cache_key, enforce_quota, get_cached, optional_user, set_cached
 
 router = APIRouter()
 logger = logging.getLogger("rentpilot")
@@ -18,15 +18,15 @@ async def ask_rights(body: RightsQuestionRequest, request: Request):
     if body.state not in US_STATES:
         raise HTTPException(status_code=400, detail=f"Invalid state: {body.state}")
 
-    user_id = require_user(request)
-    log_event(logger, "rights_question_requested", user_id=user_id, state=body.state)
+    user_id = optional_user(request)
+    log_event(logger, "rights_question_requested", user_id=user_id or "anonymous", state=body.state)
 
     if body.state not in RIGHTS_SUPPORTED_STATES:
         result = ask_tenant_rights(body.question, body.state)
         log_event(
             logger,
             "rights_question_completed",
-            user_id=user_id,
+            user_id=user_id or "anonymous",
             state=body.state,
             refused=result.get("refused"),
             supported_state=result.get("supported_state"),
@@ -40,7 +40,7 @@ async def ask_rights(body: RightsQuestionRequest, request: Request):
         log_event(
             logger,
             "rights_question_completed",
-            user_id=user_id,
+            user_id=user_id or "anonymous",
             state=body.state,
             refused=result.get("refused"),
             supported_state=result.get("supported_state"),
@@ -55,23 +55,25 @@ async def ask_rights(body: RightsQuestionRequest, request: Request):
         log_event(
             logger,
             "rights_question_cache_hit",
-            user_id=user_id,
+            user_id=user_id or "anonymous",
             state=body.state,
             source_count=len(cached.get("sources") or []),
         )
         return cached
 
-    enforce_quota(user_id, "rights")
+    if user_id:
+        enforce_quota(user_id, "rights")
     result = ask_tenant_rights(body.question, body.state, sources)
     set_cached(key, "rights", result)
     log_event(
         logger,
         "rights_question_completed",
-        user_id=user_id,
+        user_id=user_id or "anonymous",
         state=body.state,
         refused=result.get("refused"),
         supported_state=result.get("supported_state"),
         source_count=len(result.get("sources") or []),
+        authenticated=user_id is not None,
     )
     return result
 

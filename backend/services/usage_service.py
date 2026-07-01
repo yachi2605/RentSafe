@@ -1,8 +1,15 @@
 """Auth verification, per-user daily quotas, and LLM response caching.
 
-Keeps OpenAI spend bounded: LLM endpoints require a logged-in user, each
-user gets a small daily allowance per feature, and repeated inputs are
-served from a Supabase-backed cache for free.
+Design:
+- require_user()  — hard 401 if no valid JWT (used by Match social endpoints).
+- optional_user() — returns user_id or None; core tool endpoints use this so
+                    anonymous visitors can run analyses without signing up.
+- enforce_quota() — only called for authenticated users; anonymous traffic is
+                    naturally bounded by the LLM cache (identical inputs are
+                    served for free) and by OpenAI rate limits upstream.
+                    IP-based rate limiting is intentionally left to infrastructure
+                    (Cloudflare / nginx) rather than application code — university
+                    campuses share IP addresses and per-IP limits break the UX.
 """
 import hashlib
 import os
@@ -22,24 +29,50 @@ DAILY_LIMITS = {
 }
 
 
+def _validate_jwt(token: str) -> str | None:
+    """Validate a Supabase JWT and return the user id, or None on failure."""
+    try:
+        resp = requests.get(
+            f"{SUPABASE_URL}/auth/v1/user",
+            headers={"apikey": SUPABASE_SERVICE_KEY, "Authorization": f"Bearer {token}"},
+            timeout=15,
+        )
+        if not resp.ok:
+            return None
+        return resp.json().get("id") or None
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def require_user(request: Request) -> str:
-    """Validate the forwarded Supabase JWT and return the user id (401 otherwise)."""
+    """Validate the Supabase JWT and return user_id — raises 401 if absent or invalid.
+
+    Use for endpoints that are inherently identity-dependent (Match messaging,
+    posting, profile management).
+    """
     auth_header = request.headers.get("authorization", "")
     if not auth_header.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="Log in to use this feature.")
     token = auth_header.split(" ", 1)[1]
-
-    resp = requests.get(
-        f"{SUPABASE_URL}/auth/v1/user",
-        headers={"apikey": SUPABASE_SERVICE_KEY, "Authorization": f"Bearer {token}"},
-        timeout=15,
-    )
-    if not resp.ok:
-        raise HTTPException(status_code=401, detail="Session expired. Please log in again.")
-    user_id = resp.json().get("id")
+    user_id = _validate_jwt(token)
     if not user_id:
-        raise HTTPException(status_code=401, detail="Could not verify your account.")
+        raise HTTPException(status_code=401, detail="Session expired. Please log in again.")
     return user_id
+
+
+def optional_user(request: Request) -> str | None:
+    """Return user_id if a valid JWT is present, otherwise None.
+
+    Use for core tool endpoints (Lease Analyzer, Scam Checker, Tenant Rights)
+    so anonymous visitors can use the product without signing up. When user_id
+    is None, callers should skip DB history saves and quota enforcement — the
+    LLM response cache still applies, so repeated anonymous queries are free.
+    """
+    auth_header = request.headers.get("authorization", "")
+    if not auth_header.lower().startswith("bearer "):
+        return None
+    token = auth_header.split(" ", 1)[1]
+    return _validate_jwt(token)
 
 
 def enforce_quota(user_id: str, feature: str) -> None:
