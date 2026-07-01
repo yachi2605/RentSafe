@@ -1,211 +1,171 @@
 # RentPilot
 
-RentPilot is a renter-safety platform for students and early-career renters. It combines four high-friction renter jobs in one product:
+A renter-safety platform for students and early-career renters. Four high-friction renter jobs in one product: lease review, scam detection, tenant-rights guidance, and roommate matching.
 
-- lease review
-- rental scam detection
-- grounded tenant-rights guidance
-- roommate / room matching
+**Live app → [rent-safe-rose.vercel.app](https://rent-safe-rose.vercel.app)**
 
-The goal is not to be a legal service or a listing marketplace. The goal is to give renters better decision support before they sign, pay, or message.
-
-## Try It
-
-- Live app: [https://rent-safe-rose.vercel.app/login](https://rent-safe-rose.vercel.app/login)
-
-## Architecture Diagram
-
-![RentPilot architecture diagram](Artifacts/Diag.png)
-
-## Product Preview
-
-Use the live app for the full flow, and use these screenshots for a quick visual overview.
-
-### Dashboard
-
-![RentPilot dashboard](Artifacts/Dashboard.png)
-
-### Roommate Matching
-
-![RentPilot match feed](Artifacts/Match.png)
-
-### Tenant Rights Bot
-
-![RentPilot tenant rights bot](Artifacts/Tenantright_bot.png)
-
-### Saved History
-
-![RentPilot lease history](Artifacts/History.png)
+---
 
 ## What It Does
 
-### Current launch scope
+**Lease Analyzer** — Upload a lease PDF. Get a plain-English summary, red flags by risk level, negotiation tips, a tenant-friendliness score (1–10), a Q&A chat grounded in your actual lease, and a move-out protection checklist. No account required.
 
-- **Lease Analyzer**: upload a lease PDF and get a plain-English summary, red flags, negotiation tips, and a tenant-friendliness score.
-- **Scam Detector**: paste a listing and get a scam score, red flags, and likely fee issues.
-- **Tenant Rights Bot**: ask renter questions and get source-backed answers for the current launch states.
-- **Roommate Match**: browse spaces and seekers, post your own listing, and see compatibility breakdowns instead of black-box matches.
-- **Match Chat + Safety Rails**: on-platform chat, contact-detail redaction, moderation reports, and trust messaging.
-- **History + Dashboard**: saved lease analyses, saved scam checks, and quick-return navigation.
+**Scam Detector** — Paste any rental listing (Craigslist, Facebook Marketplace, email, text). Get a scam risk score, verdict, red flags, and hidden fee warnings before you hand over any money. No account required.
 
-### Current rights coverage
+**Tenant Rights Bot** — Ask renter questions and get source-backed answers. Currently covers California and Illinois. Outside that scope the bot refuses instead of guessing. No account required.
 
-The grounded rights bot currently ships with launch coverage for:
+**Roommate Match** — Browse spaces and seekers, post your own listing, see compatibility scores with factor-by-factor explanations, and message matches on-platform. Requires account (contact details redacted until both parties agree).
 
-- California
-- Illinois
+**Dashboard + History** — Logged-in users get persistent history of all analyses, a personal dashboard, and cross-device access. Anonymous users get the last 3 results per tool stored locally for 7 days.
 
-Outside that scope, the bot refuses instead of pretending to know the law.
+---
+
+## Auth Model
+
+The tools are free and work without an account. Authentication is only required for:
+
+- Dashboard
+- Roommate Match social features (posting, messaging, profile, my matches)
+
+Creating an account adds persistent history, cross-device access, and unlocks Match. It does not gate the AI tools.
+
+---
 
 ## Architecture
 
-```text
-User
-  -> Next.js frontend on Vercel
-  -> Supabase Auth for login/session
-  -> FastAPI backend on Render with bearer token
-  -> Backend verifies user + applies quotas/cache/safety rails
-  -> Backend either:
-       - reads/writes Supabase Postgres
-       - calls OpenAI for structured analysis/generation
-       - combines both for grounded rights answers
-  -> Frontend renders saved history, match results, and AI output
 ```
-
-### How the system works
-
-- **Frontend**: Next.js handles the UI, protected routes, form flows, and browser-side session handling through Supabase.
-- **Authentication**: users log in with Supabase Auth. The frontend sends the session token to the FastAPI backend on protected requests.
-- **Backend API**: FastAPI is the trusted server layer. It validates requests, enforces daily usage quotas, checks cache hits, applies safety filters, and decides whether a request needs OpenAI or only database reads/writes.
-- **Database**: Supabase Postgres stores profiles, posts, matches, reports, lease/scam history, cached responses, quotas, and curated tenant-rights sources.
-- **LLM layer**: OpenAI is used for lease analysis, scam detection, lease Q&A, negotiation drafting, move-out checklists, and source-grounded tenant-rights answers. Structured outputs are used where possible so the frontend receives predictable JSON.
-
-### Feature pipelines
-
-- **Lease Analyzer**
-  - User uploads PDF in the frontend
-  - Backend extracts PDF text with PyMuPDF
-  - PII is scrubbed before LLM use
-  - OpenAI returns structured lease summary, red flags, tips, and score
-  - Result is saved to Supabase and shown in the UI
-
-- **Scam Detector**
-  - User submits listing text
-  - Backend requires login, checks quota/cache, and guards against prompt injection
-  - OpenAI returns a structured scam score, verdict, red flags, hidden fees, and tips
-  - Result is stored in history and rendered in the dashboard/history views
-
-- **Tenant Rights Bot**
-  - User submits a question plus state
-  - Backend checks whether the state is in supported launch coverage
-  - Matching legal sources are selected from the curated rights registry in Supabase
-  - Source summaries are passed to OpenAI as context
-  - Backend returns a grounded answer with source links, or a refusal if coverage is missing
-
-- **Roommate Matching**
-  - Users create seeker or space posts
-  - Backend normalizes location fields, redacts contact details, and saves posts
-  - Matching logic runs in Python on renter preferences, budget, move-in timing, and home features
-  - The API returns compatibility scores plus factor-by-factor explanations
+Browser
+  → Next.js 14 frontend (Vercel)
+  → Supabase Auth (session management)
+  → FastAPI backend (Render)
+      → optional_user() — returns user ID or None, never blocks anonymous
+      → enforce_quota() — only for authenticated users
+      → LLM cache — SHA-256 hash of input, applies to all users
+      → OpenAI structured outputs
+      → Supabase Postgres (history, profiles, matches, rights sources, cache)
+```
 
 ### Key engineering decisions
 
-- **Cost-bounded AI**: paid AI endpoints require login, enforce per-user quotas, and cache repeat inputs.
-- **Explainable matching**: compatibility is computed from renter and apartment signals, then returned with factor-by-factor reasoning.
-- **Safer failure modes**: the rights bot refuses outside supported coverage; backend errors return CORS-safe JSON; public text is moderated before reuse.
-- **Lean launch runtime**: the default backend requirements only include packages needed to run the launch product.
+- **Anonymous-first tools**: core AI endpoints use `optional_user()` — they accept both anonymous and authenticated requests. Quota enforcement only kicks in for logged-in users.
+- **LLM caching**: every AI request is keyed on a SHA-256 hash of the input content. Repeat queries return cached results instantly with no OpenAI spend.
+- **No IP-based rate limiting for anonymous users**: university campuses share IPs. Upstream OpenAI rate limits and the content hash cache handle volume abuse instead.
+- **Explainable matching**: roommate compatibility is computed from structured signals (budget, timing, preferences) and returned with per-factor reasoning, not a black-box score.
+- **Grounded rights answers**: the tenant rights bot retrieves curated legal sources from Supabase before calling OpenAI, so answers cite real statutes and refuse when coverage is missing.
+- **localStorage fallback**: anonymous users get recent results persisted to localStorage (7-day TTL, 3 items max). History pages detect auth state and show local results or backend history accordingly.
 
-### Diagram-friendly summary
+### Feature pipelines
 
-If you want to draw this as a graph, use this shape:
+**Lease Analyzer**
+1. User uploads PDF (no login required)
+2. Backend extracts text with PyMuPDF, scrubs PII
+3. Cache check — if hit, returns immediately
+4. OpenAI returns structured red flags, score, summary, tips
+5. If authenticated: saved to Supabase + quota incremented
+6. If anonymous: saved to localStorage
 
-```text
-Browser
-  -> Next.js frontend
-  -> Supabase Auth
-  -> FastAPI backend
-FastAPI backend
-  -> Usage quota + cache + moderation/safety layer
-  -> OpenAI API
-  -> Supabase Postgres
-Supabase Postgres
-  -> profiles / posts / matches / reports / history / rights_sources / llm_cache
-```
+**Scam Detector**
+1. User pastes listing text (no login required)
+2. Cache check on SHA-256 of input
+3. OpenAI returns scam score, verdict, red flags, hidden fees, tips
+4. If authenticated: saved to Supabase history
+5. If anonymous: saved to localStorage
+
+**Tenant Rights Bot**
+1. User submits question + state (no login required)
+2. Backend checks if state is in supported coverage
+3. Matching legal sources pulled from Supabase rights registry
+4. Sources passed to OpenAI as grounding context
+5. Returns answer with citations, or refusal if coverage is missing
+
+**Roommate Matching** (requires account)
+1. Users create seeker or space posts
+2. Backend normalizes location, redacts contact details
+3. Compatibility scores computed from structured preference signals
+4. Scores returned with per-factor breakdowns
+5. On-platform chat with contact redaction until mutual reveal
+
+---
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
-- **Backend**: FastAPI, Pydantic
-- **Data/Auth**: Supabase Postgres + Auth + RLS
-- **AI**: OpenAI structured outputs
+| Layer | Tech |
+|---|---|
+| Frontend | Next.js 14, TypeScript, Tailwind CSS |
+| Backend | FastAPI, Pydantic |
+| Auth + DB | Supabase (Auth, Postgres, RLS) |
+| AI | OpenAI structured outputs |
+| Hosting | Vercel (frontend), Render (backend) |
 
-Optional heavier local dependencies such as Presidio-based PII tooling are separated from the default launch runtime.
+---
 
-## Repository Layout
+## Repo Layout
 
-```text
-frontend/   Next.js app and UI components
-backend/    FastAPI API, services, scripts, and env examples
-database/   schema, RLS, cache/quota SQL, and rights-source seed data
-DEMO.md     demo runbook
-DEPLOY.md   deployment notes
-render.yaml Render backend deployment config
 ```
+frontend/   Next.js app, components, pages
+backend/    FastAPI routers, services, scripts
+database/   Schema, RLS policies, cache/quota SQL, rights seed data
+DEMO.md     Demo runbook
+DEPLOY.md   Deployment notes
+render.yaml Render backend config
+```
+
+---
 
 ## Run Locally
 
-### 1. Database setup
+### 1. Database
 
-Run these in Supabase SQL Editor:
+Run in Supabase SQL Editor in order:
 
-1. `database/schema.sql`
-2. `database/rls_policies.sql`
-3. `database/api_protection.sql`
-4. `database/rights_sources_seed.sql`
+```
+database/schema.sql
+database/rls_policies.sql
+database/api_protection.sql
+database/rights_sources_seed.sql
+```
 
-If the database was created before the later weeks landed, also run:
-
-5. `database/manual_migration_weeks_2_to_5.sql`
+If the DB predates week 2: also run `database/manual_migration_weeks_2_to_5.sql`
 
 ### 2. Backend
 
 ```bash
-python3 -m pip install -r backend/requirements.txt
 cp backend/.env.example backend/.env
+# fill in SUPABASE_URL, SUPABASE_SERVICE_KEY, OPENAI_API_KEY
+python3 -m pip install -r backend/requirements.txt
 npm run backend:dev
 ```
 
 ### 3. Frontend
 
 ```bash
-npm install
 cp frontend/.env.local.example frontend/.env.local
+# fill in NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, NEXT_PUBLIC_API_URL
+npm install
 npm run frontend:dev
 ```
 
-### 4. Verification
+### 4. Verify
 
 ```bash
 npm run backend:check
 npm run build
 ```
 
-For a fuller walkthrough, use [DEMO.md](DEMO.md).
+Full walkthrough: [DEMO.md](DEMO.md)
+
+---
 
 ## Deployment
 
-Reference deployment notes live in [DEPLOY.md](DEPLOY.md). The project is set up for:
+- Frontend → Vercel (auto-deploy from main)
+- Backend → Render (config in `render.yaml`)
+- Database → Supabase
 
-- Vercel for the frontend
-- Render for the backend
-- Supabase for database and auth
-
-## Important Notes
-
-- RentPilot is informational software, not legal advice.
-- The project should never expose real secret keys in tracked files.
-- `.env` files stay local and are ignored by git.
+Details: [DEPLOY.md](DEPLOY.md)
 
 ---
+
+> RentPilot is informational software, not legal advice. Always verify listings, landlords, and lease terms independently before signing or paying anything.
 
 Built by Yachi Darji.
